@@ -13,6 +13,9 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 5173;
+// Bind to all interfaces so a preview proxy / other device on the network can
+// reach it, not just loopback inside the container.
+const HOST = process.env.HOST || "0.0.0.0";
 const ROOT = __dirname;
 
 const MIME = {
@@ -48,6 +51,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`🌍 GeoGuess running at http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`🌍 GeoGuess running at http://${HOST}:${PORT} (open http://localhost:${PORT})`);
 });
