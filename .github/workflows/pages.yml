@@ -30,11 +30,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Pages
+        # Pages must be enabled once in Settings -> Pages -> Source: GitHub
+        # Actions (the Actions token can deploy but can't create the site).
         uses: actions/configure-pages@v5
-        with:
-          # Auto-create the Pages site if it doesn't exist yet (works once the
-          # repo is public / on a plan that allows Pages).
-          enablement: true
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
