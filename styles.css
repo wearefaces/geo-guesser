@@ -39,6 +39,44 @@ html, body {
   color: var(--muted);
   cursor: not-allowed;
 }
+.btn-secondary { background: #2a3a4d; color: var(--text); }
+.btn-secondary:hover { background: #34465b; }
+.btn-ghost { background: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--text); }
+
+/* ---------------------- Street View setup ---------------------- */
+.sv-setup { margin: 0 0 22px; text-align: left; }
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-hover);
+  cursor: pointer;
+  font-size: 0.92rem;
+  padding: 0;
+}
+.sv-panel {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid #2a3a4d;
+  border-radius: 10px;
+}
+.sv-help { color: var(--muted); font-size: 0.85rem; line-height: 1.5; margin: 0 0 10px; }
+.sv-help a { color: var(--accent-hover); }
+#sv-token {
+  width: 100%;
+  background: #0c131c;
+  border: 1px solid #2a3a4d;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 11px;
+  font-size: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sv-actions { display: flex; gap: 8px; margin-top: 10px; }
+.sv-actions .btn { padding: 8px 16px; font-size: 0.9rem; }
+.sv-status { font-size: 0.82rem; color: var(--muted); margin: 10px 0 0; }
+.sv-status.ok { color: #6fe39b; }
 
 /* ---------------------- Start screen ---------------------- */
 #start-screen, #summary-screen {
@@ -104,6 +142,13 @@ html, body {
   inset: 0;
   background: #0a0f15;
   overflow: hidden;
+}
+.mly {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
 }
 #pano-img {
   width: 100%;
