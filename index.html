@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoGuess — Where in the World?</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ====================== START SCREEN ====================== -->
+  <section id="start-screen" class="screen">
+    <div class="start-card">
+      <h1 class="logo">🌍 GeoGuess</h1>
+      <p class="tagline">You're dropped somewhere in the world. Where are you?</p>
+      <ul class="how-to">
+        <li>Study the photo for clues.</li>
+        <li>Drop a pin on the map where you think it is.</li>
+        <li>The closer your guess, the more points — up to 5000 a round.</li>
+      </ul>
+      <label class="rounds-picker">
+        Rounds:
+        <select id="rounds-select">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+        </select>
+      </label>
+      <button id="start-btn" class="btn btn-primary">Start Game</button>
+    </div>
+  </section>
+
+  <!-- ====================== GAME SCREEN ====================== -->
+  <section id="game-screen" class="screen hidden">
+    <header class="hud">
+      <div class="hud-item">🌍 GeoGuess</div>
+      <div class="hud-item">Round <span id="round-current">1</span> / <span id="round-total">5</span></div>
+      <div class="hud-item">Score: <span id="score-total">0</span></div>
+    </header>
+
+    <div class="pano" id="pano">
+      <div class="pano-loader" id="pano-loader">
+        <div class="spinner"></div>
+        <p>Finding a place…</p>
+      </div>
+      <img id="pano-img" alt="A place somewhere in the world" />
+      <div class="pano-credit" id="pano-credit"></div>
+    </div>
+
+    <!-- Floating guess panel -->
+    <div class="guess-panel" id="guess-panel">
+      <div class="guess-map" id="guess-map"></div>
+      <button id="guess-btn" class="btn btn-primary guess-btn" disabled>
+        Place a pin to guess
+      </button>
+    </div>
+  </section>
+
+  <!-- ====================== ROUND RESULT ====================== -->
+  <section id="result-screen" class="screen hidden">
+    <div class="result-map" id="result-map"></div>
+    <div class="result-card">
+      <h2 id="result-distance">—</h2>
+      <p id="result-points" class="result-points">0 points</p>
+      <button id="next-btn" class="btn btn-primary">Next round</button>
+    </div>
+  </section>
+
+  <!-- ====================== FINAL SUMMARY ====================== -->
+  <section id="summary-screen" class="screen hidden">
+    <div class="summary-card">
+      <h1>Game over</h1>
+      <p class="summary-total">You scored</p>
+      <div class="summary-score" id="summary-score">0</div>
+      <p class="summary-max" id="summary-max">out of 0</p>
+      <p class="summary-grade" id="summary-grade"></p>
+      <button id="playagain-btn" class="btn btn-primary">Play again</button>
+    </div>
+  </section>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="locations.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

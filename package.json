@@ -1,0 +1,9 @@
+{
+  "name": "geo-guesser",
+  "version": "1.0.0",
+  "description": "A lightweight GeoGuessr-style game: spot the place from a photo and pin it on the map.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}

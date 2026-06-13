@@ -1,0 +1,208 @@
+:root {
+  --bg: #0f1720;
+  --panel: #16212e;
+  --accent: #2d6cdf;
+  --accent-hover: #3b7af0;
+  --text: #eef3f8;
+  --muted: #9fb0c3;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.screen { position: absolute; inset: 0; }
+.hidden { display: none !important; }
+
+/* ---------------------- Buttons ---------------------- */
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  background: #34404d;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* ---------------------- Start screen ---------------------- */
+#start-screen, #summary-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #1d3358 0%, transparent 60%),
+    var(--bg);
+}
+.start-card, .summary-card {
+  background: var(--panel);
+  padding: 40px 44px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  max-width: 460px;
+  width: calc(100% - 40px);
+  text-align: center;
+}
+.logo { font-size: 2.6rem; margin: 0 0 6px; }
+.tagline { color: var(--muted); margin: 0 0 22px; font-size: 1.05rem; }
+.how-to {
+  text-align: left;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0 auto 24px;
+  max-width: 340px;
+}
+.rounds-picker {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 22px;
+}
+#rounds-select {
+  margin-left: 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #2a3a4d;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 1rem;
+}
+
+/* ---------------------- HUD ---------------------- */
+.hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(15, 23, 32, 0.85), transparent);
+  font-weight: 600;
+  pointer-events: none;
+}
+.hud-item { text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+
+/* ---------------------- Panorama / photo ---------------------- */
+.pano {
+  position: absolute;
+  inset: 0;
+  background: #0a0f15;
+  overflow: hidden;
+}
+#pano-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+#pano-img.ready { opacity: 1; }
+.pano-credit {
+  position: absolute;
+  bottom: 6px;
+  left: 10px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 2px rgba(0,0,0,.8);
+}
+.pano-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+}
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #2a3a4d;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------- Guess panel ---------------------- */
+.guess-panel {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  z-index: 1000;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+.guess-map {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 2px solid rgba(255,255,255,0.15);
+  transition: height 0.2s ease;
+}
+.guess-panel:hover { width: min(46vw, 560px); }
+.guess-panel:hover .guess-map { height: min(46vh, 420px); }
+.guess-btn { width: 100%; }
+
+/* ---------------------- Result screen ---------------------- */
+.result-map { position: absolute; inset: 0; }
+.result-card {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: var(--panel);
+  padding: 18px 28px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  min-width: 300px;
+}
+.result-card h2 { margin: 0 0 4px; font-size: 1.25rem; }
+.result-points {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #6fe39b;
+}
+
+/* ---------------------- Summary ---------------------- */
+.summary-card h1 { margin: 0 0 8px; }
+.summary-total { color: var(--muted); margin: 0; }
+.summary-score {
+  font-size: 3.4rem;
+  font-weight: 800;
+  color: #6fe39b;
+  line-height: 1.1;
+}
+.summary-max { color: var(--muted); margin: 0 0 10px; }
+.summary-grade { font-size: 1.2rem; margin: 0 0 24px; }
+
+/* ---------------------- Mobile ---------------------- */
+@media (max-width: 640px) {
+  .guess-panel { width: calc(100vw - 36px); }
+  .guess-panel:hover { width: calc(100vw - 36px); }
+  .guess-panel:hover .guess-map { height: 38vh; }
+}
