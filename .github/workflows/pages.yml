@@ -31,6 +31,10 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-create the Pages site if it doesn't exist yet (works once the
+          # repo is public / on a plan that allows Pages).
+          enablement: true
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
