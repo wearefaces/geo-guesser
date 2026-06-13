@@ -1,11 +1,18 @@
-/* global L, LOCATIONS */
+/* global maplibregl, mapillary, LOCATIONS */
 "use strict";
 
 /* ============================================================
  * GeoGuess — a small GeoGuessr-style game.
  *
- * Flow: start screen -> N rounds (photo + guess map) -> per-round
- * result with the true location revealed -> final summary.
+ * Two view modes:
+ *   - Street View (Mapillary): walk around real street imagery. Enabled when
+ *     the player has saved a free Mapillary access token. The answer is the
+ *     actual location of the street image shown.
+ *   - Photo (fallback): a single Wikipedia photo of the place. Used when no
+ *     token is set, or when a round has no nearby street imagery.
+ *
+ * Guess/result maps use MapLibre GL + OpenFreeMap (keyless vector tiles), with
+ * labels relabelled to the device language.
  * ============================================================ */
 
 const MAX_POINTS_PER_ROUND = 5000;
@@ -15,15 +22,22 @@ const SCORE_DECAY_KM = 1500;
 // Anything within this distance is treated as a bullseye (full points).
 const PERFECT_KM = 25;
 
-const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+// Keyless vector basemap. Labels are relabelled to the device language below.
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
+// Two-letter device language (e.g. "sv", "en") used for OSM `name:<lang>` tags.
+const LANG = (navigator.language || "en").toLowerCase().split("-")[0];
+
+const TOKEN_KEY = "geoguess.mapillaryToken";
 
 /* ---------------------- Game state ---------------------- */
 const state = {
   deck: [],          // locations chosen for this game
   roundIndex: 0,     // 0-based current round
   totalScore: 0,
-  guessLatLng: null, // player's current guess for the active round
+  guessLatLng: null, // player's current guess {lat,lng}
+  truth: null,       // answer for the active round {lat,lng}
+  mode: "photo",     // "street" | "photo"
 };
 
 /* ---------------------- DOM helpers --------------------- */
@@ -40,37 +54,74 @@ function showScreen(name) {
   screens[name].classList.remove("hidden");
 }
 
-/* ---------------------- Leaflet maps -------------------- */
-// Created lazily and reused across rounds.
+/* ---------------------- Mapillary token ----------------- */
+function getToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+function setToken(t) {
+  try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+}
+function refreshTokenStatus() {
+  const status = $("sv-status");
+  const has = !!getToken();
+  status.textContent = has
+    ? "✓ Street View enabled — you'll walk around real imagery."
+    : "No token set — you'll guess from photos.";
+  status.classList.toggle("ok", has);
+  if (has && !$("sv-token").value) $("sv-token").value = getToken();
+}
+
+/* ---------------------- MapLibre maps ------------------- */
 let guessMap = null;
 let resultMap = null;
 let guessMarker = null;
+let resultMarkers = [];
 
-function makeMap(elId) {
-  const map = L.map(elId, {
-    worldCopyJump: true,
-    zoomControl: true,
-    attributionControl: true,
-  }).setView([20, 0], 1);
-  L.tileLayer(OSM_TILES, { attribution: OSM_ATTR, maxZoom: 19, noWrap: false }).addTo(map);
+// Relabel every symbol layer to the device language, falling back to the
+// local name when a translation isn't present in the tiles.
+function localizeLabels(map) {
+  const expr = ["coalesce", ["get", "name:" + LANG], ["get", "name"]];
+  for (const layer of map.getStyle().layers || []) {
+    if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
+      try { map.setLayoutProperty(layer.id, "text-field", expr); } catch { /* ignore */ }
+    }
+  }
+}
+
+function makeMap(container, interactive) {
+  const map = new maplibregl.Map({
+    container,
+    style: MAP_STYLE,
+    center: [0, 20],
+    zoom: 1,
+    interactive,
+    attributionControl: { compact: true },
+  });
+  map.on("style.load", () => localizeLabels(map));
   return map;
 }
 
 function initGuessMap() {
   if (guessMap) return;
-  guessMap = makeMap("guess-map");
-  guessMap.on("click", (e) => setGuess(e.latlng));
+  guessMap = makeMap("guess-map", true);
+  guessMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+  guessMap.on("click", (e) => setGuess(e.lngLat));
+  // The panel grows on hover; keep the canvas in sync.
+  $("guess-panel").addEventListener("transitionend", () => guessMap.resize());
 }
 
-function setGuess(latlng) {
-  state.guessLatLng = latlng;
+function setGuess(lngLat) {
+  state.guessLatLng = { lat: lngLat.lat, lng: lngLat.lng };
   if (!guessMarker) {
-    guessMarker = L.marker(latlng, { draggable: true }).addTo(guessMap);
+    guessMarker = new maplibregl.Marker({ draggable: true, color: "#2d6cdf" })
+      .setLngLat(lngLat)
+      .addTo(guessMap);
     guessMarker.on("dragend", () => {
-      state.guessLatLng = guessMarker.getLatLng();
+      const ll = guessMarker.getLngLat();
+      state.guessLatLng = { lat: ll.lat, lng: ll.lng };
     });
   } else {
-    guessMarker.setLatLng(latlng);
+    guessMarker.setLngLat(lngLat);
   }
   const btn = $("guess-btn");
   btn.disabled = false;
@@ -93,8 +144,7 @@ function haversineKm(a, b) {
 
 function scoreForDistance(km) {
   if (km <= PERFECT_KM) return MAX_POINTS_PER_ROUND;
-  const pts = MAX_POINTS_PER_ROUND * Math.exp(-km / SCORE_DECAY_KM);
-  return Math.round(pts);
+  return Math.round(MAX_POINTS_PER_ROUND * Math.exp(-km / SCORE_DECAY_KM));
 }
 
 function formatDistance(km) {
@@ -103,8 +153,47 @@ function formatDistance(km) {
   return `${Math.round(km).toLocaleString()} km`;
 }
 
-/* ---------------------- Imagery ------------------------- */
-// Fetch a usable photo URL for a location from the Wikipedia REST API.
+/* ---------------------- Mapillary street view ----------- */
+let viewer = null;
+let viewerBroken = false; // if the viewer can't init, give up on street mode
+
+// Find a Mapillary image near a coordinate, widening the search until we hit
+// coverage (or give up). Returns { id, lat, lng } or null.
+async function findMapillaryImage(lat, lng) {
+  const token = getToken();
+  if (!token) return null;
+  const halfSizes = [0.012, 0.05, 0.2, 0.6]; // ~1.3km, 5km, 22km, 65km
+  for (const h of halfSizes) {
+    const bbox = [lng - h, lat - h, lng + h, lat + h].join(",");
+    const url =
+      "https://graph.mapillary.com/images" +
+      `?access_token=${encodeURIComponent(token)}` +
+      "&fields=id,computed_geometry,geometry&limit=1&bbox=" + bbox;
+    let res;
+    try { res = await fetch(url); } catch { continue; }
+    if (!res.ok) continue;
+    let json;
+    try { json = await res.json(); } catch { continue; }
+    const img = json && json.data && json.data[0];
+    const g = img && (img.computed_geometry || img.geometry);
+    const c = g && g.coordinates;
+    if (c) return { id: img.id, lat: c[1], lng: c[0] };
+  }
+  return null;
+}
+
+function ensureViewer(imageId) {
+  if (viewer) return viewer.moveTo(imageId);
+  viewer = new mapillary.Viewer({
+    accessToken: getToken(),
+    container: "mly",
+    imageId,
+    component: { cover: false },
+  });
+  return Promise.resolve();
+}
+
+/* ---------------------- Imagery (photo fallback) -------- */
 async function fetchImageForLocation(loc) {
   const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(loc.title)}`;
   const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -116,7 +205,6 @@ async function fetchImageForLocation(loc) {
   return src;
 }
 
-// Resolve <img> load/error into a promise so we can fail gracefully.
 function loadImg(imgEl, src) {
   return new Promise((resolve, reject) => {
     imgEl.onload = () => resolve();
@@ -140,117 +228,169 @@ function startGame() {
   state.deck = shuffle(LOCATIONS).slice(0, Math.min(rounds, LOCATIONS.length));
   state.roundIndex = 0;
   state.totalScore = 0;
+  state.mode = getToken() && !viewerBroken ? "street" : "photo";
   $("round-total").textContent = state.deck.length;
   $("score-total").textContent = "0";
   showScreen("game");
   initGuessMap();
+  setTimeout(() => guessMap.resize(), 80);
   loadRound();
 }
 
-async function loadRound() {
-  const loc = state.deck[state.roundIndex];
+// Reset the guess UI + map at the start of a round.
+function resetGuessUI() {
   state.guessLatLng = null;
-
-  // Reset guess UI.
   $("round-current").textContent = state.roundIndex + 1;
   const btn = $("guess-btn");
   btn.disabled = true;
   btn.textContent = "Place a pin to guess";
-  if (guessMarker) {
-    guessMap.removeLayer(guessMarker);
-    guessMarker = null;
-  }
-  guessMap.setView([20, 0], 1);
+  if (guessMarker) { guessMarker.remove(); guessMarker = null; }
+  guessMap.jumpTo({ center: [0, 20], zoom: 1 });
+}
 
-  // Reset photo + show loader.
-  const img = $("pano-img");
+function showLoader(msg) {
   const loader = $("pano-loader");
-  img.classList.remove("ready");
   loader.classList.remove("hidden");
-  loader.querySelector("p").textContent = "Finding a place…";
-  $("pano-credit").textContent = "";
+  loader.querySelector("p").textContent = msg;
+}
+function hideLoader() { $("pano-loader").classList.add("hidden"); }
 
+// Drop the current round (no imagery) and pull in a replacement so the game
+// never gets stuck, then continue.
+function skipRound(reason) {
+  console.warn("Skipping round:", reason);
+  state.deck.splice(state.roundIndex, 1);
+  if (state.deck.length <= state.roundIndex) {
+    const used = new Set(state.deck.map((l) => l.title));
+    const extra = LOCATIONS.find((l) => !used.has(l.title));
+    if (extra) state.deck.push(extra);
+  }
+  $("round-total").textContent = state.deck.length;
+  if (state.deck.length === 0) {
+    showLoader("No locations could be loaded. Check your connection.");
+    return;
+  }
+  setTimeout(loadRound, 500);
+}
+
+async function loadRound() {
+  const loc = state.deck[state.roundIndex];
+  resetGuessUI();
+
+  const img = $("pano-img");
+  const mly = $("mly");
+  img.classList.remove("ready");
+  $("pano-credit").textContent = "";
+  showLoader(state.mode === "street" ? "Finding a street nearby…" : "Finding a place…");
+
+  if (state.mode === "street") {
+    try {
+      const hit = await findMapillaryImage(loc.lat, loc.lng);
+      if (!hit) {
+        // No street coverage near here — fall back to a photo for this round.
+        await loadPhotoRound(loc);
+        return;
+      }
+      state.truth = { lat: hit.lat, lng: hit.lng };
+      await ensureViewer(hit.id);
+      mly.style.display = "block";
+      img.style.display = "none";
+      setTimeout(() => viewer && viewer.resize(), 60);
+      hideLoader();
+      $("pano-credit").textContent = "Imagery © Mapillary contributors";
+    } catch (err) {
+      console.warn("Street view failed, falling back to photo:", err);
+      viewerBroken = true; // viewer itself is unusable; stop trying it
+      await loadPhotoRound(loc);
+    }
+  } else {
+    await loadPhotoRound(loc);
+  }
+}
+
+async function loadPhotoRound(loc) {
+  const img = $("pano-img");
+  $("mly").style.display = "none";
+  img.style.display = "block";
+  state.truth = { lat: loc.lat, lng: loc.lng };
   try {
     const src = await fetchImageForLocation(loc);
     await loadImg(img, src);
     img.classList.add("ready");
-    loader.classList.add("hidden");
+    hideLoader();
     $("pano-credit").textContent = "Photo: Wikimedia Commons";
-    // Refresh map sizing now the screen is visible.
-    setTimeout(() => guessMap.invalidateSize(), 100);
   } catch (err) {
-    // Could not load this place — skip to the next playable one so the
-    // game never gets stuck on a broken round.
-    console.warn(`Skipping ${loc.name}:`, err);
-    loader.querySelector("p").textContent = "Hmm, that one didn't load. Trying another…";
-    state.deck.splice(state.roundIndex, 1);
-    if (state.deck.length <= state.roundIndex) {
-      // Pull in a fresh location not already in the deck.
-      const used = new Set(state.deck.map((l) => l.title));
-      const extra = LOCATIONS.find((l) => !used.has(l.title));
-      if (extra) state.deck.push(extra);
-    }
-    $("round-total").textContent = state.deck.length;
-    if (state.deck.length === 0) {
-      loader.querySelector("p").textContent = "No locations could be loaded. Check your connection.";
-      return;
-    }
-    setTimeout(loadRound, 600);
+    skipRound(`${loc.name}: ${err.message}`);
   }
 }
 
 function submitGuess() {
-  if (!state.guessLatLng) return;
+  if (!state.guessLatLng || !state.truth) return;
   const loc = state.deck[state.roundIndex];
-  const truth = { lat: loc.lat, lng: loc.lng };
-  const km = haversineKm(state.guessLatLng, truth);
+  const km = haversineKm(state.guessLatLng, state.truth);
   const points = scoreForDistance(km);
   state.totalScore += points;
   $("score-total").textContent = state.totalScore.toLocaleString();
-
-  showResult(loc, truth, state.guessLatLng, km, points);
+  showResult(loc, state.truth, state.guessLatLng, km, points);
 }
 
 /* ---------------------- Result screen ------------------- */
 function showResult(loc, truth, guess, km, points) {
   showScreen("result");
-
   $("result-distance").textContent = `${loc.name} — ${formatDistance(km)} away`;
   $("result-points").textContent = `${points.toLocaleString()} points`;
   $("next-btn").textContent =
     state.roundIndex + 1 >= state.deck.length ? "See results" : "Next round";
 
-  if (!resultMap) {
-    resultMap = makeMap("result-map");
+  if (!resultMap) resultMap = makeMap("result-map", true);
+
+  const drawResult = () => {
+    resultMap.resize();
+    // Clear previous markers.
+    resultMarkers.forEach((m) => m.remove());
+    resultMarkers = [];
+
+    const truthLngLat = [truth.lng, truth.lat];
+    const guessLngLat = [guess.lng, guess.lat];
+
+    resultMarkers.push(
+      new maplibregl.Marker({ color: "#e8483b" }).setLngLat(truthLngLat)
+        .setPopup(new maplibregl.Popup().setText(`📍 ${loc.name}`))
+        .addTo(resultMap)
+    );
+    resultMarkers.push(
+      new maplibregl.Marker({ color: "#2d6cdf" }).setLngLat(guessLngLat)
+        .setPopup(new maplibregl.Popup().setText("Your guess"))
+        .addTo(resultMap)
+    );
+
+    // Dashed line between guess and truth.
+    const line = {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: [guessLngLat, truthLngLat] },
+    };
+    if (resultMap.getSource("guess-line")) {
+      resultMap.getSource("guess-line").setData(line);
+    } else {
+      resultMap.addSource("guess-line", { type: "geojson", data: line });
+      resultMap.addLayer({
+        id: "guess-line",
+        type: "line",
+        source: "guess-line",
+        paint: { "line-color": "#2d6cdf", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+    }
+
+    const bounds = new maplibregl.LngLatBounds(guessLngLat, guessLngLat);
+    bounds.extend(truthLngLat);
+    resultMap.fitBounds(bounds, { padding: 70, maxZoom: 6, duration: 0 });
+  };
+
+  if (resultMap.isStyleLoaded()) {
+    setTimeout(drawResult, 60);
+  } else {
+    resultMap.once("idle", drawResult);
   }
-  // Clear previous round's markers/lines.
-  resultMap.eachLayer((layer) => {
-    if (!(layer instanceof L.TileLayer)) resultMap.removeLayer(layer);
-  });
-
-  const truthLL = L.latLng(truth.lat, truth.lng);
-  const guessLL = L.latLng(guess.lat, guess.lng);
-
-  L.marker(truthLL).addTo(resultMap).bindPopup(`📍 ${loc.name}`).openPopup();
-  L.circleMarker(guessLL, {
-    radius: 8,
-    color: "#2d6cdf",
-    fillColor: "#2d6cdf",
-    fillOpacity: 0.9,
-  }).addTo(resultMap).bindPopup("Your guess");
-  L.polyline([guessLL, truthLL], {
-    color: "#2d6cdf",
-    weight: 2,
-    dashArray: "6 8",
-  }).addTo(resultMap);
-
-  // Make sure both points are comfortably in view.
-  setTimeout(() => {
-    resultMap.invalidateSize();
-    resultMap.fitBounds(L.latLngBounds([guessLL, truthLL]).pad(0.4), {
-      maxZoom: 6,
-    });
-  }, 100);
 }
 
 function nextRound() {
@@ -259,7 +399,7 @@ function nextRound() {
     showSummary();
   } else {
     showScreen("game");
-    setTimeout(() => guessMap.invalidateSize(), 100);
+    setTimeout(() => guessMap.resize(), 80);
     loadRound();
   }
 }
@@ -286,3 +426,21 @@ $("start-btn").addEventListener("click", startGame);
 $("guess-btn").addEventListener("click", submitGuess);
 $("next-btn").addEventListener("click", nextRound);
 $("playagain-btn").addEventListener("click", () => showScreen("start"));
+
+// Street View token panel.
+$("sv-toggle").addEventListener("click", () => {
+  const panel = $("sv-panel");
+  panel.classList.toggle("hidden");
+  $("sv-toggle").textContent =
+    (panel.classList.contains("hidden") ? "▸" : "▾") + " Street View (optional, free)";
+});
+$("sv-save").addEventListener("click", () => {
+  setToken($("sv-token").value.trim());
+  refreshTokenStatus();
+});
+$("sv-clear").addEventListener("click", () => {
+  setToken("");
+  $("sv-token").value = "";
+  refreshTokenStatus();
+});
+refreshTokenStatus();

@@ -7,11 +7,34 @@ round).
 
 ## How to play
 
-1. Pick the number of rounds and hit **Start Game**.
-2. Look at the photo for clues.
-3. Hover the mini-map in the bottom-right to expand it, then **click to drop a pin**.
-4. Hit **Guess** to reveal the true location, the distance, and your score.
-5. After the final round, see your total and grade. Play again!
+1. (Optional) Expand **Street View** on the start screen and paste a free
+   [Mapillary](https://www.mapillary.com/dashboard/developers) access token to
+   walk around real street imagery. Without one, you'll guess from photos.
+2. Pick the number of rounds and hit **Start Game**.
+3. Explore the view for clues (drag to look around in Street View).
+4. Hover the mini-map in the bottom-right to expand it, then **click to drop a pin**.
+5. Hit **Guess** to reveal the true location, the distance, and your score.
+6. After the final round, see your total and grade. Play again!
+
+## Street View (Mapillary)
+
+Street-level "walk around" imagery comes from [Mapillary](https://www.mapillary.com/),
+which is free but needs an access token:
+
+1. Sign in at <https://www.mapillary.com/dashboard/developers> and create a token.
+2. On the GeoGuess start screen, expand **Street View** and paste it in, then **Save**.
+
+The token is stored only in your browser (`localStorage`) — it is **never**
+committed to this repo or sent anywhere except Mapillary. Coverage is
+crowdsourced, so a round with no nearby imagery automatically falls back to a
+photo. With no token at all, the whole game runs in photo mode.
+
+## Localized map
+
+The guess/result maps use [MapLibre GL](https://maplibre.org/) with keyless
+[OpenFreeMap](https://openfreemap.org/) vector tiles. Labels are relabelled to
+your device language (`navigator.language`), falling back to each place's local
+name where a translation isn't available in the tiles.
 
 ## Scoring
 
@@ -43,18 +66,20 @@ python3 -m http.server 5173
 
 Then open <http://localhost:5173>.
 
-> An internet connection is needed at play time: the map tiles come from
-> OpenStreetMap, Leaflet is loaded from a CDN, and location photos are fetched
-> from the Wikipedia REST API. No API keys are required.
+> An internet connection is needed at play time: map tiles come from
+> OpenFreeMap, MapLibre/Mapillary are loaded from a CDN, photos from the
+> Wikipedia REST API, and (optionally) street imagery from Mapillary. The only
+> credential is your own optional Mapillary token.
 
 ## How it works
 
-| Concern        | Choice                                                                 |
-| -------------- | ---------------------------------------------------------------------- |
-| Guess map      | [Leaflet](https://leafletjs.com/) + OpenStreetMap tiles (no API key)   |
-| Location photo | Wikipedia REST summary API, keyed by article title (CORS-enabled)      |
-| Distance       | Haversine great-circle distance                                        |
-| Stack          | Plain HTML/CSS/vanilla JS — no framework, no bundler                    |
+| Concern        | Choice                                                                  |
+| -------------- | ----------------------------------------------------------------------- |
+| Guess map      | [MapLibre GL](https://maplibre.org/) + [OpenFreeMap](https://openfreemap.org/) vector tiles (no key), labels localized to device language |
+| Street view    | [Mapillary JS](https://mapillary.github.io/mapillary-js/) walk-around viewer (free token) |
+| Location photo | Wikipedia REST summary API, keyed by article title (CORS-enabled)       |
+| Distance       | Haversine great-circle distance                                         |
+| Stack          | Plain HTML/CSS/vanilla JS — no framework, no bundler                     |
 
 ## Project layout
 

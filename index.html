@@ -4,12 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GeoGuess — Where in the World?</title>
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+
+  <!-- MapLibre GL: keyless vector maps, labels localizable to device language -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <!-- Mapillary JS: walk-around street-level imagery -->
+  <link rel="stylesheet" href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -19,10 +18,11 @@
       <h1 class="logo">🌍 GeoGuess</h1>
       <p class="tagline">You're dropped somewhere in the world. Where are you?</p>
       <ul class="how-to">
-        <li>Study the photo for clues.</li>
+        <li>Explore the view for clues.</li>
         <li>Drop a pin on the map where you think it is.</li>
         <li>The closer your guess, the more points — up to 5000 a round.</li>
       </ul>
+
       <label class="rounds-picker">
         Rounds:
         <select id="rounds-select">
@@ -31,6 +31,25 @@
           <option value="10">10</option>
         </select>
       </label>
+
+      <!-- Optional Mapillary street view setup -->
+      <div class="sv-setup">
+        <button id="sv-toggle" class="link-btn" type="button">▸ Street View (optional, free)</button>
+        <div id="sv-panel" class="sv-panel hidden">
+          <p class="sv-help">
+            Paste a free <strong>Mapillary</strong> access token to walk around real
+            street imagery. Without one, you'll guess from photos.
+            <a href="https://www.mapillary.com/dashboard/developers" target="_blank" rel="noopener">Get a token →</a>
+          </p>
+          <input id="sv-token" type="text" autocomplete="off" spellcheck="false" placeholder="MLY|xxxx|xxxxxxxx" />
+          <div class="sv-actions">
+            <button id="sv-save" class="btn btn-secondary" type="button">Save</button>
+            <button id="sv-clear" class="btn btn-ghost" type="button">Clear</button>
+          </div>
+          <p id="sv-status" class="sv-status"></p>
+        </div>
+      </div>
+
       <button id="start-btn" class="btn btn-primary">Start Game</button>
     </div>
   </section>
@@ -44,11 +63,12 @@
     </header>
 
     <div class="pano" id="pano">
+      <div class="mly" id="mly"></div>           <!-- Mapillary viewer mounts here -->
+      <img id="pano-img" alt="A place somewhere in the world" /> <!-- photo fallback -->
       <div class="pano-loader" id="pano-loader">
         <div class="spinner"></div>
         <p>Finding a place…</p>
       </div>
-      <img id="pano-img" alt="A place somewhere in the world" />
       <div class="pano-credit" id="pano-credit"></div>
     </div>
 
@@ -83,11 +103,8 @@
     </div>
   </section>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
   <script src="locations.js"></script>
   <script src="game.js"></script>
 </body>
