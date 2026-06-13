@@ -255,6 +255,18 @@ function showLoader(msg) {
 }
 function hideLoader() { $("pano-loader").classList.add("hidden"); }
 
+let hintTimer = null;
+// Show a hint pill over the view. `persistent` keeps it up (used to nudge
+// players in photo mode); otherwise it fades after a few seconds.
+function setPanoHint(text, persistent) {
+  const hint = $("pano-hint");
+  clearTimeout(hintTimer);
+  hint.innerHTML = text;
+  hint.classList.toggle("persistent", !!persistent);
+  hint.classList.add("show");
+  if (!persistent) hintTimer = setTimeout(() => hint.classList.remove("show"), 6000);
+}
+
 // Drop the current round (no imagery) and pull in a replacement so the game
 // never gets stuck, then continue.
 function skipRound(reason) {
@@ -298,6 +310,7 @@ async function loadRound() {
       setTimeout(() => viewer && viewer.resize(), 60);
       hideLoader();
       $("pano-credit").textContent = "Imagery © Mapillary contributors";
+      setPanoHint("🚶 <b>Drag</b> to look around · tap the <b>arrows</b> on the street to move", false);
     } catch (err) {
       console.warn("Street view failed, falling back to photo:", err);
       viewerBroken = true; // viewer itself is unusable; stop trying it
@@ -319,6 +332,17 @@ async function loadPhotoRound(loc) {
     img.classList.add("ready");
     hideLoader();
     $("pano-credit").textContent = "Photo: Wikimedia Commons";
+    if (getToken()) {
+      // Token is set but this spot has no street coverage.
+      setPanoHint("📷 No street imagery here — showing a photo for this round", false);
+    } else {
+      // No token at all: this is why it isn't walkable.
+      setPanoHint(
+        "📷 Photo mode — to <b>walk around</b> real streets, add a free " +
+        "Mapillary token on the start screen (Play again → Street View)",
+        true
+      );
+    }
   } catch (err) {
     skipRound(`${loc.name}: ${err.message}`);
   }
