@@ -1,0 +1,43 @@
+name: Deploy to GitHub Pages
+
+# The game is fully static, so we publish the repo root straight to Pages.
+# This gives a public https URL that works on any device, including mobile.
+on:
+  push:
+    branches:
+      - main
+      - claude/geo-guesser-clone-8tgkyr
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; newer pushes cancel in-flight ones.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Repo root holds index.html + assets; that's the whole site.
+          path: "."
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
