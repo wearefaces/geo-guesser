@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=23" />
+  <link rel="stylesheet" href="styles.css?v=24" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
@@ -113,7 +113,12 @@
     <header class="hud">
       <div class="hud-pill" id="hud-round">Round <b><span id="round-current">1</span>/<span id="round-total">5</span></b></div>
       <div class="brand-pill"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>GEOGUESS</div>
-      <div class="hud-pill" id="hud-score"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg> <b><span id="score-total">0</span></b></div>
+      <div class="hud-right">
+        <div class="hud-pill" id="hud-score"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg> <b><span id="score-total">0</span></b></div>
+        <button id="game-profile-btn" class="icon-btn hud-icon" type="button" aria-label="Profile">
+          <svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </button>
+      </div>
     </header>
     <div class="live-pill" id="live-pill"><span class="live-dot"></span><b id="online-count">0</b>&nbsp;online</div>
 
@@ -170,8 +175,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=23"></script>
-  <script src="locations.js?v=23"></script>
-  <script src="game.js?v=23"></script>
+  <script src="config.js?v=24"></script>
+  <script src="locations.js?v=24"></script>
+  <script src="game.js?v=24"></script>
 </body>
 </html>

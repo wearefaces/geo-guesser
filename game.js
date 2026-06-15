@@ -232,15 +232,20 @@ function stopTimer() {
   if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
 }
 function startTimer() {
+  state.timeLeft = state.timeLimit;
+  resumeTimer();
+}
+// Restart the countdown interval from the current timeLeft (used to resume
+// after the game was paused, e.g. while viewing the profile).
+function resumeTimer() {
   stopTimer();
   if (!state.timeLimit) { renderTimer(); return; }
-  state.timeLeft = state.timeLimit;
-  renderTimer();
   state.timerId = setInterval(() => {
     state.timeLeft -= 1;
     renderTimer();
     if (state.timeLeft <= 0) { stopTimer(); toast("Time's up!"); finishRound(); }
   }, 1000);
+  renderTimer(); // show the countdown immediately (timerId is now set)
 }
 
 /* ---------------------- Ambient players ----------------- */
@@ -752,9 +757,23 @@ $("guess-btn").addEventListener("click", () => {
 $("next-btn").addEventListener("click", nextRound);
 $("playagain-btn").addEventListener("click", () => { stopTimer(); stopAmbient(); clearInterval(onlineTimer); showScreen("start"); });
 
-// Profile screen
-$("profile-btn").addEventListener("click", () => { renderProfile(); showScreen("profile"); });
-$("profile-back").addEventListener("click", () => showScreen("start"));
+// Profile screen — remember where we came from so "back" returns there.
+let profileReturn = "start";
+$("profile-btn").addEventListener("click", () => { profileReturn = "start"; renderProfile(); showScreen("profile"); });
+$("game-profile-btn").addEventListener("click", () => {
+  profileReturn = "game";
+  stopTimer(); stopAmbient();          // pause the round while viewing the profile
+  renderProfile();
+  showScreen("profile");
+});
+$("profile-back").addEventListener("click", () => {
+  showScreen(profileReturn);
+  if (profileReturn === "game") {       // resume the paused round
+    setTimeout(() => google.maps.event.trigger(guessMap, "resize"), 80);
+    resumeTimer();
+    startAmbient();
+  }
+});
 $("profile-name").addEventListener("input", () => {
   profile.name = $("profile-name").value.slice(0, 20) || "Explorer";
   $("profile-avatar").textContent = avatarLetter();
@@ -818,6 +837,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=23").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=24").catch(() => {});
   });
 }
