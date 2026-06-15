@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>GeoGuess — Where in the World?</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+
+  <!-- PWA / installable mobile app -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0d1420" />
+  <link rel="icon" href="icon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GeoGuess" />
+
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
@@ -32,6 +43,7 @@
       </div>
 
       <button id="start-btn" class="btn btn-primary btn-lg btn-block">▶ Play</button>
+      <button id="install-btn" class="btn btn-ghost btn-block install-btn hidden">📲 Install app</button>
 
       <div class="how-to">
         <span>🚶 Walk the street view</span>
@@ -121,8 +133,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=6"></script>
-  <script src="locations.js?v=6"></script>
-  <script src="game.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="locations.js?v=7"></script>
+  <script src="game.js?v=7"></script>
 </body>
 </html>

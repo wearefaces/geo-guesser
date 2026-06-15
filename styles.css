@@ -32,6 +32,7 @@ html, body {
   border: none;
   border-radius: 12px;
   padding: 12px 20px;
+  min-height: 48px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -39,6 +40,7 @@ html, body {
   transition: transform 0.06s ease, filter 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
 }
+.install-btn { margin-top: 10px; }
 .btn:active { transform: translateY(1px) scale(0.99); }
 .btn-primary { background: var(--accent-grad); box-shadow: 0 6px 18px rgba(59, 122, 240, 0.35); }
 .btn-primary:hover { filter: brightness(1.07); }
@@ -69,7 +71,10 @@ html, body {
   width: 100%;
   text-align: center;
 }
-.logo { font-size: 2.7rem; margin: 0 0 6px; letter-spacing: -0.5px; }
+.logo { font-size: 2.7rem; margin: 0 0 6px; letter-spacing: -0.5px; animation: float 4.5s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-6px); } }
+.start-card, .summary-card { animation: pop 0.42s cubic-bezier(.2,.85,.25,1); }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
 .tagline { color: var(--muted); margin: 0 0 26px; font-size: 1.08rem; }
 
 /* Rounds segmented control */
@@ -107,8 +112,11 @@ html, body {
 .hud {
   position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
   display: flex; justify-content: space-between; gap: 10px;
-  padding: 12px; pointer-events: none;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  pointer-events: none;
+  animation: dropIn 0.4s ease;
 }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 .hud-pill {
   background: rgba(13, 20, 32, 0.72);
   backdrop-filter: blur(8px);
@@ -147,7 +155,7 @@ html, body {
 /* ---------------------- Guess panel ---------------------- */
 .guess-panel {
   position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 10px;
-  bottom: 16px; right: 16px; width: 320px;
+  bottom: calc(16px + env(safe-area-inset-bottom)); right: max(16px, env(safe-area-inset-right)); width: 320px;
   transition: width 0.22s ease;
 }
 .guess-map {
@@ -185,10 +193,12 @@ html, body {
 /* ---------------------- Result ---------------------- */
 .result-map { position: absolute; inset: 0; }
 .result-card {
-  position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1000;
+  position: absolute; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1000;
   background: rgba(24,35,47,0.96); padding: 18px 22px; border-radius: 20px; box-shadow: var(--shadow);
   border: 1px solid rgba(255,255,255,0.07); text-align: center; width: min(420px, calc(100vw - 28px));
+  animation: slideUp 0.4s cubic-bezier(.2,.85,.25,1);
 }
+@keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(24px); } to { opacity: 1; transform: translateX(-50%); } }
 .result-emoji { font-size: 2rem; line-height: 1; margin-bottom: 4px; }
 .result-card h2 { margin: 0; font-size: 1.15rem; font-weight: 700; }
 .result-points { margin: 6px 0 14px; font-size: 1.6rem; font-weight: 800; color: var(--good); }
@@ -216,7 +226,7 @@ html, body {
 
 /* ---------------------- Mobile ---------------------- */
 @media (max-width: 640px) {
-  .guess-panel { left: 12px; right: 12px; width: auto; bottom: 12px; }
+  .guess-panel { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); width: auto; bottom: calc(12px + env(safe-area-inset-bottom)); }
   .guess-panel.expanded { width: auto; }
   .guess-panel.collapsed .guess-map, .map-open { height: 130px; }
   .guess-panel.expanded .guess-map { height: 56vh; }
