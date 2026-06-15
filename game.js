@@ -129,9 +129,17 @@ function setGuess(latLng) {
   } else {
     guessMarker.setPosition(latLng);
   }
+  updateGuessButton();
+}
+
+// The bottom button is always useful: with no pin it opens the map; once a pin
+// is placed it submits the guess. The live countdown is shown on it too.
+function updateGuessButton() {
   const btn = $("guess-btn");
+  let label = state.guessLatLng ? "Guess" : "Open map";
+  if (state.timeLimit && state.timerId) label += " · " + formatTime(Math.max(0, state.timeLeft));
+  btn.textContent = label;
   btn.disabled = false;
-  btn.textContent = "Guess";
 }
 
 /* ---------------------- Geo + scoring ------------------- */
@@ -210,6 +218,7 @@ function formatTime(s) {
 }
 function renderTimer() {
   const pill = $("hud-timer");
+  updateGuessButton(); // keep the countdown on the action button in sync
   if (!state.timeLimit) { pill.style.display = "none"; return; }
   pill.style.display = "";
   pill.querySelector("b").textContent = formatTime(Math.max(0, state.timeLeft));
@@ -471,13 +480,11 @@ function setMapExpanded(on) {
 function resetGuessUI() {
   state.guessLatLng = null;
   $("round-current").textContent = state.roundIndex + 1;
-  const btn = $("guess-btn");
-  btn.disabled = true;
-  btn.textContent = "Drop a pin";
   if (guessMarker) { guessMarker.setMap(null); guessMarker = null; }
   guessMap.setCenter({ lat: 20, lng: 0 });
   guessMap.setZoom(1);
   setMapExpanded(false);
+  updateGuessButton();
 }
 
 async function loadRound() {
@@ -655,7 +662,10 @@ $("map-open").addEventListener("click", () => setMapExpanded(true));
 $("map-collapse").addEventListener("click", () => setMapExpanded(false));
 
 $("start-btn").addEventListener("click", startGame);
-$("guess-btn").addEventListener("click", submitGuess);
+$("guess-btn").addEventListener("click", () => {
+  if (state.guessLatLng) submitGuess();
+  else setMapExpanded(true); // no pin yet -> open the map so they can place one
+});
 $("next-btn").addEventListener("click", nextRound);
 $("playagain-btn").addEventListener("click", () => { stopTimer(); stopAmbient(); clearInterval(onlineTimer); showScreen("start"); });
 $("share-btn").addEventListener("click", () => {
@@ -716,6 +726,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=19").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=20").catch(() => {});
   });
 }

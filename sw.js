@@ -3,14 +3,14 @@
  * Network-first for same-origin requests (so a new deploy is always picked up
  * when online), with a cache fallback for offline. Cross-origin requests
  * (Google Maps / Street View / tiles) always go straight to the network. */
-const CACHE = "geoguess-v19";
+const CACHE = "geoguess-v20";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=19",
-  "./game.js?v=19",
-  "./config.js?v=19",
-  "./locations.js?v=19",
+  "./styles.css?v=20",
+  "./game.js?v=20",
+  "./config.js?v=20",
+  "./locations.js?v=20",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
