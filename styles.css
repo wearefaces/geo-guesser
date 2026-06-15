@@ -31,11 +31,11 @@ html, body {
 .hidden { display: none !important; }
 
 /* ---------------------- Buttons ---------------------- */
+/* Bump-style: fully-rounded gradient pills with an icon + bold white text. */
 .btn {
   -webkit-appearance: none; appearance: none;
-  position: relative; overflow: hidden;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border: none; border-radius: 16px; padding: 14px 22px; min-height: 54px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border: none; border-radius: 999px; padding: 15px 26px; min-height: 54px;
   font-family: var(--font); font-size: 1.05rem; font-weight: 800; letter-spacing: 0.2px;
   cursor: pointer; color: #fff;
   transition: transform 0.12s cubic-bezier(.2,.9,.3,1.2), box-shadow 0.2s ease, background 0.2s ease, filter 0.2s ease;
@@ -45,32 +45,21 @@ html, body {
 .btn:focus-visible { outline: 3px solid rgba(47,107,255,0.5); outline-offset: 2px; }
 
 .btn-primary {
-  background: var(--accent-grad);
-  box-shadow: 0 12px 26px rgba(47, 107, 255, 0.42), inset 0 1px 0 rgba(255,255,255,0.4);
+  background: linear-gradient(180deg, #4a90ff 0%, #2f6bff 100%);
+  box-shadow: 0 12px 26px rgba(47, 107, 255, 0.45), inset 0 1px 0 rgba(255,255,255,0.4);
 }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 32px rgba(47,107,255,0.5), inset 0 1px 0 rgba(255,255,255,0.4); }
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.04); box-shadow: 0 16px 32px rgba(47,107,255,0.52), inset 0 1px 0 rgba(255,255,255,0.4); }
 .btn-primary:active { transform: translateY(1px) scale(0.985); }
 .btn-primary:disabled { background: #cdd2e6; color: #fff; box-shadow: none; cursor: not-allowed; }
-/* Subtle moving sheen for a premium feel. */
-.btn-primary::after {
-  content: ""; position: absolute; top: 0; left: -65%; width: 45%; height: 100%;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.38), transparent);
-  transform: skewX(-20deg); animation: sheen 5s ease-in-out infinite; pointer-events: none;
-}
-.btn-primary:disabled::after { display: none; }
-@keyframes sheen { 0%, 62% { left: -65%; } 82%, 100% { left: 135%; } }
 
-/* Glassy secondary */
 .btn-secondary {
-  background: rgba(255,255,255,0.65); color: var(--accent);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  border: 1px solid rgba(47,107,255,0.18);
-  box-shadow: 0 6px 18px rgba(31,45,110,0.1);
+  background: #fff; color: var(--accent);
+  box-shadow: 0 8px 20px rgba(31,45,110,0.12); border: 1px solid #eceefb;
 }
-.btn-secondary:hover { background: rgba(255,255,255,0.85); transform: translateY(-1px); }
+.btn-secondary:hover { background: #f7f9ff; transform: translateY(-1px); }
 .btn-ghost { background: transparent; color: var(--muted); box-shadow: none; min-height: 46px; }
 .btn-ghost:hover { color: var(--ink); }
-.btn-lg { padding: 18px 28px; font-size: 1.25rem; border-radius: 20px; }
+.btn-lg { padding: 18px 30px; font-size: 1.25rem; }
 .btn-block { display: flex; width: 100%; }
 .install-btn { margin-top: 10px; }
 
@@ -233,8 +222,14 @@ html, body {
 .summary-score { font-size: 4rem; font-weight: 900; color: var(--accent); line-height: 1.02; letter-spacing: -1px; }
 .summary-max { color: var(--muted); margin: 0 0 6px; font-weight: 700; }
 .summary-grade { font-size: 1.25rem; font-weight: 800; margin: 10px 0 16px; }
-.round-dots { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-bottom: 22px; }
-.round-dots .dot { width: 30px; height: 9px; border-radius: 999px; background: #e2e5f5; }
+.round-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; text-align: left; }
+.round-row { display: flex; align-items: center; gap: 12px; background: #f1f2f8; border-radius: 16px; padding: 10px 14px; }
+.round-row-rank { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; background: #fff; color: var(--accent); font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+.round-row-main { flex: 1; min-width: 0; }
+.round-row-name { font-weight: 800; color: var(--ink); font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.round-row-sub { color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+.round-row-pts { font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.round-row-heart { font-size: 1.05rem; width: 22px; text-align: center; }
 .summary-actions { display: flex; flex-direction: column; gap: 10px; }
 
 /* ---------------------- Toast ---------------------- */
