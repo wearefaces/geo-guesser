@@ -233,9 +233,22 @@ function startTimer() {
 /* ---------------------- Ambient players ----------------- */
 // Simulated "online" players dropping pins on the guess map for a lively,
 // social feel. Purely cosmetic — never affects scoring or the player's pin.
-const PLAYER_COLORS = ["#2f6bff", "#18c98a", "#f4b740", "#ff5d6c", "#a855f7", "#06b6d4", "#fb7185"];
+const PLAYER_COLORS = ["#2f6bff", "#18c98a", "#f4b740", "#ff5d6c", "#a855f7", "#06b6d4", "#fb7185", "#f97316"];
+const PLAYER_INITIALS = "ABCDEFGHIJKLMNOPRSTVWYZ".split("");
 let ambientTimer = null, onlineTimer = null, ambientMarkers = [];
 let onlineCount = 0;
+
+// Build a little avatar "bubble" marker (coloured circle + initial + tail) as
+// an inline SVG data URI — no network, looks like a player on the map.
+function avatarDataUri(letter, color) {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">' +
+    '<path d="M20 47 L11 31 H29 Z" fill="' + color + '"/>' +
+    '<circle cx="20" cy="18" r="16" fill="' + color + '" stroke="#fff" stroke-width="3"/>' +
+    '<text x="20" y="24" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text>' +
+    '</svg>';
+  return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+}
 
 function renderOnline() {
   const el = $("online-count");
@@ -263,22 +276,28 @@ function dropFakePin() {
     lng = Math.random() * 360 - 180;
   }
   const color = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+  const letter = PLAYER_INITIALS[Math.floor(Math.random() * PLAYER_INITIALS.length)];
   const m = new google.maps.Marker({
     position: { lat, lng }, map: guessMap, clickable: false, zIndex: 1,
     animation: google.maps.Animation.DROP,
-    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 6, fillColor: color, fillOpacity: 0.9, strokeColor: "#fff", strokeWeight: 2 },
+    icon: {
+      url: avatarDataUri(letter, color),
+      scaledSize: new google.maps.Size(36, 43),
+      anchor: new google.maps.Point(18, 43),
+    },
   });
   ambientMarkers.push(m);
-  if (ambientMarkers.length > 14) ambientMarkers.shift().setMap(null);
-  setTimeout(() => { m.setMap(null); ambientMarkers = ambientMarkers.filter((x) => x !== m); }, 3500);
+  if (ambientMarkers.length > 7) ambientMarkers.shift().setMap(null);
+  // Avatars linger a while, then fade out.
+  setTimeout(() => { m.setMap(null); ambientMarkers = ambientMarkers.filter((x) => x !== m); }, 7000);
 }
 function startAmbient() {
   stopAmbient();
   const tick = () => {
     dropFakePin();
-    ambientTimer = setTimeout(tick, 900 + Math.random() * 1500);
+    ambientTimer = setTimeout(tick, 3000 + Math.random() * 3000); // calm: ~3–6s apart
   };
-  ambientTimer = setTimeout(tick, 600);
+  ambientTimer = setTimeout(tick, 1200);
 }
 function stopAmbient() {
   clearTimeout(ambientTimer); ambientTimer = null;
@@ -696,6 +715,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=17").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=18").catch(() => {});
   });
 }
