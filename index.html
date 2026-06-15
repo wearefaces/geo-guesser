@@ -4,12 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GeoGuess — Where in the World?</title>
-
-  <!-- MapLibre GL: keyless vector maps, labels localizable to device language -->
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <!-- Mapillary JS: walk-around street-level imagery -->
-  <link rel="stylesheet" href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
@@ -18,7 +13,7 @@
       <h1 class="logo">🌍 GeoGuess</h1>
       <p class="tagline">You're dropped somewhere in the world. Where are you?</p>
       <ul class="how-to">
-        <li>Explore the view for clues.</li>
+        <li>Walk around the street view for clues.</li>
         <li>Drop a pin on the map where you think it is.</li>
         <li>The closer your guess, the more points — up to 5000 a round.</li>
       </ul>
@@ -32,16 +27,17 @@
         </select>
       </label>
 
-      <!-- Optional Mapillary street view setup -->
+      <!-- Google Maps API key (street view + map) -->
       <div class="sv-setup">
-        <button id="sv-toggle" class="link-btn" type="button">▸ Street View (optional, free)</button>
+        <button id="sv-toggle" class="link-btn" type="button">▸ Google Maps API key</button>
         <div id="sv-panel" class="sv-panel hidden">
           <p class="sv-help">
-            Paste a free <strong>Mapillary</strong> access token to walk around real
-            street imagery. Without one, you'll guess from photos.
-            <a href="https://www.mapillary.com/dashboard/developers" target="_blank" rel="noopener">Get a token →</a>
+            This game uses <strong>Google Street View</strong>. Paste a Google Maps
+            JavaScript API key (with billing enabled). Restrict it to this site's
+            domain in the Google Cloud console.
+            <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener">Manage keys →</a>
           </p>
-          <input id="sv-token" type="text" autocomplete="off" spellcheck="false" placeholder="MLY|xxxx|xxxxxxxx" />
+          <input id="sv-token" type="text" autocomplete="off" spellcheck="false" placeholder="AIza…" />
           <div class="sv-actions">
             <button id="sv-save" class="btn btn-secondary" type="button">Save</button>
             <button id="sv-clear" class="btn btn-ghost" type="button">Clear</button>
@@ -63,7 +59,7 @@
     </header>
 
     <div class="pano" id="pano">
-      <div class="mly" id="mly"></div>           <!-- Mapillary viewer mounts here -->
+      <div class="sv" id="sv"></div>              <!-- Google StreetViewPanorama -->
       <img id="pano-img" alt="A place somewhere in the world" /> <!-- photo fallback -->
       <div class="pano-loader" id="pano-loader">
         <div class="spinner"></div>
@@ -104,10 +100,8 @@
     </div>
   </section>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
-  <script src="config.js?v=4"></script>
-  <script src="locations.js?v=4"></script>
-  <script src="game.js?v=4"></script>
+  <script src="config.js?v=5"></script>
+  <script src="locations.js?v=5"></script>
+  <script src="game.js?v=5"></script>
 </body>
 </html>
