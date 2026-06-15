@@ -26,6 +26,11 @@ const state = {
   totalScore: 0,
   guessLatLng: null, // {lat,lng}
   truth: null,       // {lat,lng}
+  rounds: 5,         // chosen via the segmented control
+  results: [],       // [{ name, km, points }] for share + summary
+  timeLimit: 60,     // seconds per round (0 = no timer)
+  timeLeft: 0,
+  timerId: null,
 };
 
 /* ---------------------- DOM helpers --------------------- */
@@ -148,6 +153,68 @@ function formatDistance(km) {
   if (km < 100) return `${km.toFixed(1)} km`;
   return `${Math.round(km).toLocaleString()} km`;
 }
+function emojiForPoints(p) {
+  if (p >= 4500) return "🎯";
+  if (p >= 3500) return "🔥";
+  if (p >= 2000) return "👍";
+  if (p >= 800) return "🧭";
+  return "😅";
+}
+
+/* ---------------------- UI feedback --------------------- */
+function animateNumber(el, to, dur = 750) {
+  const from = 0, start = performance.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    el.textContent = Math.round(from + (to - from) * ease(p)).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+const GAME_URL = "https://wearefaces.github.io/geo-guesser/";
+async function shareText(text) {
+  if (navigator.share) {
+    try { await navigator.share({ title: "GeoGuess", text, url: GAME_URL }); return; }
+    catch { /* user cancelled or unsupported — fall through to copy */ }
+  }
+  try { await navigator.clipboard.writeText(text + "\n" + GAME_URL); toast("Copied to clipboard 📋"); }
+  catch { toast("Couldn't share"); }
+}
+
+/* ---------------------- Round timer --------------------- */
+function formatTime(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+function renderTimer() {
+  const pill = $("hud-timer");
+  if (!state.timeLimit) { pill.style.display = "none"; return; }
+  pill.style.display = "";
+  pill.querySelector("b").textContent = formatTime(Math.max(0, state.timeLeft));
+  pill.classList.toggle("danger", state.timeLeft <= 10);
+}
+function stopTimer() {
+  if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+}
+function startTimer() {
+  stopTimer();
+  if (!state.timeLimit) { renderTimer(); return; }
+  state.timeLeft = state.timeLimit;
+  renderTimer();
+  state.timerId = setInterval(() => {
+    state.timeLeft -= 1;
+    renderTimer();
+    if (state.timeLeft <= 0) { stopTimer(); toast("⏰ Time's up!"); finishRound(); }
+  }, 1000);
+}
 
 /* ---------------------- Street View --------------------- */
 let panorama = null, svService = null;
@@ -164,7 +231,10 @@ function findPano(lat, lng) {
         {
           location: { lat, lng },
           radius: radii[i],
-          source: google.maps.StreetViewSource.OUTDOOR,
+          // GOOGLE = official car coverage (on roads, connected to walk), not
+          // random user photospheres that can sit in a desert or forest.
+          source: (google.maps.StreetViewSource && google.maps.StreetViewSource.GOOGLE) ||
+                   google.maps.StreetViewSource.DEFAULT,
           preference: google.maps.StreetViewPreference.NEAREST,
         },
         (data, status) => {
@@ -247,7 +317,7 @@ function shuffle(arr) {
 }
 
 async function startGame() {
-  const rounds = parseInt($("rounds-select").value, 10) || 5;
+  const rounds = state.rounds || 5;
   try {
     showLoaderOnStart(true);
     await loadGoogleMaps();
@@ -264,6 +334,7 @@ async function startGame() {
   state.deck = shuffle(LOCATIONS).slice(0, Math.min(rounds, LOCATIONS.length));
   state.roundIndex = 0;
   state.totalScore = 0;
+  state.results = [];
   $("round-total").textContent = state.deck.length;
   $("score-total").textContent = "0";
   showScreen("game");
@@ -275,7 +346,14 @@ async function startGame() {
 function showLoaderOnStart(on) {
   const btn = $("start-btn");
   btn.disabled = on;
-  btn.textContent = on ? "Loading…" : "Start Game";
+  btn.textContent = on ? "Loading…" : "▶ Play";
+}
+
+function setMapExpanded(on) {
+  const panel = $("guess-panel");
+  panel.classList.toggle("expanded", on);
+  panel.classList.toggle("collapsed", !on);
+  setTimeout(() => guessMap && google.maps.event.trigger(guessMap, "resize"), 240);
 }
 
 function resetGuessUI() {
@@ -283,10 +361,11 @@ function resetGuessUI() {
   $("round-current").textContent = state.roundIndex + 1;
   const btn = $("guess-btn");
   btn.disabled = true;
-  btn.textContent = "Place a pin to guess";
+  btn.textContent = "Drop a pin";
   if (guessMarker) { guessMarker.setMap(null); guessMarker = null; }
   guessMap.setCenter({ lat: 20, lng: 0 });
   guessMap.setZoom(1);
+  setMapExpanded(false);
 }
 
 function skipRound(reason) {
@@ -317,6 +396,7 @@ async function loadRound() {
     $("pano-img").style.display = "none";
     hideLoader();
     setPanoHint("🚶 <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
+    startTimer();
   } else {
     await loadPhotoRound(loc);
   }
@@ -334,28 +414,46 @@ async function loadPhotoRound(loc) {
     hideLoader();
     $("pano-credit").textContent = "Photo: Wikimedia Commons";
     setPanoHint("📷 No Street View here — showing a photo for this round", false);
+    startTimer();
   } catch (err) {
     skipRound(`${loc.name}: ${err.message}`);
   }
 }
 
+// Manual "Guess" button — only valid once a pin is placed.
 function submitGuess() {
-  if (!state.guessLatLng || !state.truth) return;
+  if (!state.guessLatLng) return;
+  finishRound();
+}
+
+// End the round, whether by guessing or the timer running out (no pin = 0).
+function finishRound() {
+  stopTimer();
   const loc = state.deck[state.roundIndex];
-  const km = haversineKm(state.guessLatLng, state.truth);
-  const points = scoreForDistance(km);
+  const guess = state.guessLatLng;
+  let km = null, points = 0;
+  if (guess && state.truth) {
+    km = haversineKm(guess, state.truth);
+    points = scoreForDistance(km);
+  }
   state.totalScore += points;
+  state.results.push({ name: loc.name, km, points });
   $("score-total").textContent = state.totalScore.toLocaleString();
-  showResult(loc, state.truth, state.guessLatLng, km, points);
+  showResult(loc, state.truth, guess, km, points);
 }
 
 /* ---------------------- Result -------------------------- */
 function showResult(loc, truth, guess, km, points) {
   showScreen("result");
-  $("result-distance").textContent = `${loc.name} — ${formatDistance(km)} away`;
-  $("result-points").textContent = `${points.toLocaleString()} points`;
+  $("result-emoji").textContent = guess ? emojiForPoints(points) : "⏰";
+  $("result-distance").textContent = guess
+    ? `${loc.name} — ${formatDistance(km)} away`
+    : `${loc.name} — out of time!`;
+  animateNumber($("result-points-num"), points);
+  $("result-bar").style.width = "0%";
+  setTimeout(() => { $("result-bar").style.width = (points / MAX_POINTS_PER_ROUND * 100) + "%"; }, 60);
   $("next-btn").textContent =
-    state.roundIndex + 1 >= state.deck.length ? "See results" : "Next round";
+    state.roundIndex + 1 >= state.deck.length ? "See results →" : "Next round →";
 
   if (!resultMap) resultMap = makeMap($("result-map"), true);
 
@@ -364,30 +462,38 @@ function showResult(loc, truth, guess, km, points) {
   if (resultLine) { resultLine.setMap(null); resultLine = null; }
 
   const t = { lat: truth.lat, lng: truth.lng };
-  const g = { lat: guess.lat, lng: guess.lng };
-
   resultMarkers.push(new google.maps.Marker({ position: t, map: resultMap, label: "📍", title: loc.name }));
-  resultMarkers.push(new google.maps.Marker({
-    position: g, map: resultMap, title: "Your guess",
-    icon: {
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 7, fillColor: "#2d6cdf", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2,
-    },
-  }));
-  resultLine = new google.maps.Polyline({
-    path: [g, t], map: resultMap, geodesic: true,
-    strokeColor: "#2d6cdf", strokeOpacity: 0.85, strokeWeight: 2,
-  });
 
-  const bounds = new google.maps.LatLngBounds();
-  bounds.extend(t); bounds.extend(g);
+  if (guess) {
+    const g = { lat: guess.lat, lng: guess.lng };
+    resultMarkers.push(new google.maps.Marker({
+      position: g, map: resultMap, title: "Your guess",
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7, fillColor: "#2d6cdf", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2,
+      },
+    }));
+    resultLine = new google.maps.Polyline({
+      path: [g, t], map: resultMap, geodesic: true,
+      strokeColor: "#2d6cdf", strokeOpacity: 0.85, strokeWeight: 2,
+    });
+  }
+
   setTimeout(() => {
     google.maps.event.trigger(resultMap, "resize");
-    resultMap.fitBounds(bounds, 70);
+    if (guess) {
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(t); bounds.extend({ lat: guess.lat, lng: guess.lng });
+      resultMap.fitBounds(bounds, 70);
+    } else {
+      resultMap.setCenter(t);
+      resultMap.setZoom(5);
+    }
   }, 80);
 }
 
 function nextRound() {
+  stopTimer();
   state.roundIndex += 1;
   if (state.roundIndex >= state.deck.length) {
     showSummary();
@@ -407,24 +513,72 @@ function gradeFor(pct) {
   return "🤷 Lost, but having fun!";
 }
 function showSummary() {
-  const max = state.deck.length * MAX_POINTS_PER_ROUND;
-  $("summary-score").textContent = state.totalScore.toLocaleString();
+  const max = state.results.length * MAX_POINTS_PER_ROUND;
+  const pct = max ? state.totalScore / max : 0;
   $("summary-max").textContent = `out of ${max.toLocaleString()}`;
-  $("summary-grade").textContent = gradeFor(max ? state.totalScore / max : 0);
+  $("summary-grade").textContent = gradeFor(pct);
+
+  // Per-round dots coloured by how well each round scored.
+  const dots = $("round-dots");
+  dots.innerHTML = "";
+  for (const r of state.results) {
+    const d = document.createElement("span");
+    d.className = "dot";
+    const g = r.points / MAX_POINTS_PER_ROUND;
+    d.style.background = g >= 0.7 ? "#34d399" : g >= 0.4 ? "#f4c343" : "#e8746a";
+    d.title = `${r.name}: ${r.points.toLocaleString()}`;
+    dots.appendChild(d);
+  }
+
   showScreen("summary");
+  animateNumber($("summary-score"), state.totalScore, 900);
+  $("summary-bar").style.width = "0%";
+  setTimeout(() => { $("summary-bar").style.width = (pct * 100) + "%"; }, 80);
+}
+
+function buildShareText() {
+  const max = state.results.length * MAX_POINTS_PER_ROUND;
+  const dots = state.results
+    .map((r) => (r.points / MAX_POINTS_PER_ROUND >= 0.7 ? "🟩" : r.points / MAX_POINTS_PER_ROUND >= 0.4 ? "🟨" : "🟥"))
+    .join("");
+  return `🌍 GeoGuess — ${state.totalScore.toLocaleString()}/${max.toLocaleString()}\n${dots}\nCan you beat me?`;
 }
 
 /* ---------------------- Wire-up ------------------------- */
+// Segmented controls — toggle "active" only within each group.
+function wireSeg(groupId, apply) {
+  const group = $(groupId);
+  group.querySelectorAll(".seg-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      group.querySelectorAll(".seg-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      apply(b);
+    });
+  });
+}
+wireSeg("rounds-seg", (b) => { state.rounds = parseInt(b.dataset.rounds, 10) || 5; });
+wireSeg("time-seg", (b) => { state.timeLimit = parseInt(b.dataset.time, 10) || 0; });
+
+// Tap-to-expand mini-map (mobile-friendly guess flow).
+$("map-open").addEventListener("click", () => setMapExpanded(true));
+$("map-collapse").addEventListener("click", () => setMapExpanded(false));
+
 $("start-btn").addEventListener("click", startGame);
 $("guess-btn").addEventListener("click", submitGuess);
 $("next-btn").addEventListener("click", nextRound);
-$("playagain-btn").addEventListener("click", () => showScreen("start"));
+$("playagain-btn").addEventListener("click", () => { stopTimer(); showScreen("start"); });
+$("share-btn").addEventListener("click", () => {
+  const last = state.results[state.results.length - 1];
+  const line = last ? `🌍 GeoGuess — ${last.name}: ${last.points.toLocaleString()} pts (${formatDistance(last.km)} off)` : "🌍 GeoGuess";
+  shareText(line + "\nCan you beat me?");
+});
+$("summary-share-btn").addEventListener("click", () => shareText(buildShareText()));
 
 $("sv-toggle").addEventListener("click", () => {
   const panel = $("sv-panel");
   panel.classList.toggle("hidden");
   $("sv-toggle").textContent =
-    (panel.classList.contains("hidden") ? "▸" : "▾") + " Google Maps API key";
+    (panel.classList.contains("hidden") ? "⚙︎ Advanced:" : "▾") + " Google Maps API key";
 });
 $("sv-save").addEventListener("click", () => { setKey($("sv-token").value.trim()); refreshKeyStatus(); });
 $("sv-clear").addEventListener("click", () => { setKey(""); $("sv-token").value = ""; refreshKeyStatus(); });
