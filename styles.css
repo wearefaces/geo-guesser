@@ -13,8 +13,8 @@
   --shadow: 0 16px 38px rgba(31, 45, 110, 0.18);
   --shadow-sm: 0 6px 18px rgba(31, 45, 110, 0.14);
   --radius: 24px;
-  --font: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN",
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
