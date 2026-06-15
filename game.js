@@ -162,34 +162,53 @@ function formatDistance(km) {
 let viewer = null;
 let viewerBroken = false; // if the viewer can't init, give up on street mode
 
+// Diagnostic from the last Mapillary lookup, surfaced on screen when we have
+// to fall back to a photo, so failures are debuggable from a screenshot.
+let lastDiag = "";
+
 // Find a *walkable* Mapillary image near a coordinate: one that belongs to a
 // connected sequence (so the viewer shows movement arrows), preferring 360°
 // panoramas. Widens the search until coverage is found. Returns
 // { id, lat, lng } or null.
 async function findMapillaryImage(lat, lng) {
   const token = getToken();
-  if (!token) return null;
-  const halfSizes = [0.012, 0.05, 0.2, 0.6]; // ~1.3km, 5km, 22km, 65km
+  if (!token) { lastDiag = "no token"; return null; }
+  // Send the token the way mapillary-js does (Authorization: OAuth …), which
+  // the API accepts cross-origin.
+  const headers = { Authorization: "OAuth " + token };
+  const halfSizes = [0.02, 0.08, 0.3]; // ~2km, 9km, 33km
+  let sawImages = 0;
   for (const h of halfSizes) {
     const bbox = [lng - h, lat - h, lng + h, lat + h].join(",");
     const url =
       "https://graph.mapillary.com/images" +
-      `?access_token=${encodeURIComponent(token)}` +
-      "&fields=id,is_pano,sequence,computed_geometry,geometry&limit=100&bbox=" + bbox;
+      "?fields=id,is_pano,sequence,computed_geometry,geometry&limit=50&bbox=" + bbox;
     let res;
-    try { res = await fetch(url); } catch { continue; }
-    if (!res.ok) continue;
+    try {
+      res = await fetch(url, { headers });
+    } catch (e) {
+      lastDiag = "network/CORS error: " + (e && e.message);
+      continue;
+    }
+    if (!res.ok) {
+      let body = "";
+      try { body = (await res.text()).slice(0, 100); } catch { /* ignore */ }
+      lastDiag = `HTTP ${res.status} ${body}`;
+      continue;
+    }
     let json;
-    try { json = await res.json(); } catch { continue; }
+    try { json = await res.json(); } catch { lastDiag = "bad JSON response"; continue; }
     const data = (json && json.data) || [];
-    if (!data.length) continue;
+    sawImages += data.length;
+    if (!data.length) { lastDiag = "0 images in this area"; continue; }
 
     // Group images by sequence; a sequence with several images nearby means
     // there's a path to walk along.
     const seqs = new Map();
     for (const im of data) {
       const key = im.sequence || im.id;
-      (seqs.get(key) || seqs.set(key, []).get(key)).push(im);
+      if (!seqs.has(key)) seqs.set(key, []);
+      seqs.get(key).push(im);
     }
     // Score each sequence: more images = more walkable; bonus if it has panos.
     let best = null;
@@ -203,8 +222,9 @@ async function findMapillaryImage(lat, lng) {
     const chosen = ims.find((i) => i.is_pano) || ims[Math.floor(ims.length / 2)];
     const g = chosen.computed_geometry || chosen.geometry;
     const c = g && g.coordinates;
-    if (c) return { id: chosen.id, lat: c[1], lng: c[0] };
+    if (c) { lastDiag = ""; return { id: chosen.id, lat: c[1], lng: c[0] }; }
   }
+  if (sawImages && !lastDiag) lastDiag = "images found but no coordinates";
   return null;
 }
 
@@ -334,7 +354,7 @@ async function loadRound() {
       const hit = await findMapillaryImage(loc.lat, loc.lng);
       if (!hit) {
         // No street coverage near here — fall back to a photo for this round.
-        await loadPhotoRound(loc);
+        await loadPhotoRound(loc, lastDiag);
         return;
       }
       state.truth = { lat: hit.lat, lng: hit.lng };
@@ -348,14 +368,14 @@ async function loadRound() {
     } catch (err) {
       console.warn("Street view failed, falling back to photo:", err);
       viewerBroken = true; // viewer itself is unusable; stop trying it
-      await loadPhotoRound(loc);
+      await loadPhotoRound(loc, "viewer error: " + (err && err.message));
     }
   } else {
     await loadPhotoRound(loc);
   }
 }
 
-async function loadPhotoRound(loc) {
+async function loadPhotoRound(loc, diag) {
   const img = $("pano-img");
   $("mly").style.display = "none";
   img.style.display = "block";
@@ -367,8 +387,9 @@ async function loadPhotoRound(loc) {
     hideLoader();
     $("pano-credit").textContent = "Photo: Wikimedia Commons";
     if (getToken()) {
-      // Token is set but this spot has no street coverage.
-      setPanoHint("📷 No street imagery here — showing a photo for this round", false);
+      // Token is set but we couldn't load street imagery here. Show why.
+      const why = diag ? ` (${diag})` : "";
+      setPanoHint("📷 No walkable street imagery here — showing a photo" + why, false);
     } else {
       // No token at all: this is why it isn't walkable.
       setPanoHint(
