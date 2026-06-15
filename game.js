@@ -162,8 +162,10 @@ function formatDistance(km) {
 let viewer = null;
 let viewerBroken = false; // if the viewer can't init, give up on street mode
 
-// Find a Mapillary image near a coordinate, widening the search until we hit
-// coverage (or give up). Returns { id, lat, lng } or null.
+// Find a *walkable* Mapillary image near a coordinate: one that belongs to a
+// connected sequence (so the viewer shows movement arrows), preferring 360°
+// panoramas. Widens the search until coverage is found. Returns
+// { id, lat, lng } or null.
 async function findMapillaryImage(lat, lng) {
   const token = getToken();
   if (!token) return null;
@@ -173,16 +175,35 @@ async function findMapillaryImage(lat, lng) {
     const url =
       "https://graph.mapillary.com/images" +
       `?access_token=${encodeURIComponent(token)}` +
-      "&fields=id,computed_geometry,geometry&limit=1&bbox=" + bbox;
+      "&fields=id,is_pano,sequence,computed_geometry,geometry&limit=100&bbox=" + bbox;
     let res;
     try { res = await fetch(url); } catch { continue; }
     if (!res.ok) continue;
     let json;
     try { json = await res.json(); } catch { continue; }
-    const img = json && json.data && json.data[0];
-    const g = img && (img.computed_geometry || img.geometry);
+    const data = (json && json.data) || [];
+    if (!data.length) continue;
+
+    // Group images by sequence; a sequence with several images nearby means
+    // there's a path to walk along.
+    const seqs = new Map();
+    for (const im of data) {
+      const key = im.sequence || im.id;
+      (seqs.get(key) || seqs.set(key, []).get(key)).push(im);
+    }
+    // Score each sequence: more images = more walkable; bonus if it has panos.
+    let best = null;
+    for (const ims of seqs.values()) {
+      const hasPano = ims.some((i) => i.is_pano);
+      const score = ims.length + (hasPano ? 1000 : 0);
+      if (!best || score > best.score) best = { score, ims };
+    }
+    const ims = best.ims;
+    // Start on a panorama if available, otherwise the middle of the sequence.
+    const chosen = ims.find((i) => i.is_pano) || ims[Math.floor(ims.length / 2)];
+    const g = chosen.computed_geometry || chosen.geometry;
     const c = g && g.coordinates;
-    if (c) return { id: img.id, lat: c[1], lng: c[0] };
+    if (c) return { id: chosen.id, lat: c[1], lng: c[0] };
   }
   return null;
 }
@@ -193,7 +214,15 @@ function ensureViewer(imageId) {
     accessToken: getToken(),
     container: "mly",
     imageId,
-    component: { cover: false },
+    component: {
+      cover: false,
+      // Navigation: arrows to adjacent images, sequence stepping, and keys.
+      direction: true,
+      sequence: true,
+      pointer: true,
+      zoom: true,
+      keyboard: true,
+    },
   });
   return Promise.resolve();
 }
