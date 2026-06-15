@@ -137,9 +137,11 @@ function setGuess(latLng) {
 function updateGuessButton() {
   const btn = $("guess-btn");
   let label = state.guessLatLng ? "Guess" : "Open map";
-  if (state.timeLimit && state.timerId) label += " · " + formatTime(Math.max(0, state.timeLeft));
+  const timed = state.timeLimit && state.timerId;
+  if (timed) label += " · " + formatTime(Math.max(0, state.timeLeft));
   btn.textContent = label;
   btn.disabled = false;
+  btn.classList.toggle("danger", !!timed && state.timeLeft <= 10);
 }
 
 /* ---------------------- Geo + scoring ------------------- */
@@ -217,12 +219,7 @@ function formatTime(s) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 function renderTimer() {
-  const pill = $("hud-timer");
-  updateGuessButton(); // keep the countdown on the action button in sync
-  if (!state.timeLimit) { pill.style.display = "none"; return; }
-  pill.style.display = "";
-  pill.querySelector("b").textContent = formatTime(Math.max(0, state.timeLeft));
-  pill.classList.toggle("danger", state.timeLeft <= 10);
+  updateGuessButton(); // the countdown lives on the action button now
 }
 function stopTimer() {
   if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
@@ -726,6 +723,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=20").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=21").catch(() => {});
   });
 }
