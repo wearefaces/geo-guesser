@@ -214,6 +214,13 @@ html, body {
   padding: 9px 16px; border-radius: 999px; font-size: 0.95rem; font-weight: 800;
   box-shadow: 0 6px 18px rgba(31,45,110,0.16);
 }
+.hud-right { display: flex; align-items: center; gap: 8px; }
+.hud-icon {
+  width: 40px; height: 40px; pointer-events: auto;
+  background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.55); box-shadow: 0 6px 18px rgba(31,45,110,0.16);
+}
+.hud-icon .ic { width: 20px; height: 20px; }
 .hud-pill b { color: var(--accent); }
 #hud-score { background: var(--accent-grad); color: #fff; box-shadow: 0 8px 18px rgba(47,107,255,0.4); }
 #hud-score b { color: #fff; }
