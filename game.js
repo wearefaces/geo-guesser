@@ -369,12 +369,12 @@ async function findRoundPano() {
     const jLat = anchor.lat + (Math.random() - 0.5) * 0.8; // ~±44 km
     const jLng = anchor.lng + (Math.random() - 0.5) * 0.8;
     const hit = await findPano(jLat, jLng);
-    if (hit) return hit;
+    if (hit) { hit.label = anchor.label; return hit; }
   }
   // Last resort: the anchors themselves (guaranteed coverage).
   for (const a of deck) {
     const hit = await findPano(a.lat, a.lng);
-    if (hit) return hit;
+    if (hit) { hit.label = a.label; return hit; }
   }
   return null;
 }
@@ -483,13 +483,14 @@ function resetGuessUI() {
 async function loadRound() {
   resetGuessUI();
   $("pano-credit").textContent = "";
-  state.currentName = "this location";
+  state.currentName = "Somewhere on Earth";
   showLoader("Finding a street somewhere on Earth…");
 
   const hit = await findRoundPano();
   if (!hit) { showLoader("Couldn't find a location — check your connection."); return; }
 
   state.truth = { lat: hit.lat, lng: hit.lng };
+  state.currentName = hit.label || "Somewhere on Earth"; // refined by geocoding below
   ensurePanorama(hit.pano);
   $("sv").style.display = "block";
   $("pano-img").style.display = "none";
@@ -715,6 +716,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=18").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=19").catch(() => {});
   });
 }
