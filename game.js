@@ -41,6 +41,7 @@ const screens = {
   game: $("game-screen"),
   result: $("result-screen"),
   summary: $("summary-screen"),
+  profile: $("profile-screen"),
 };
 function showScreen(name) {
   Object.values(screens).forEach((s) => s.classList.add("hidden"));
@@ -176,6 +177,12 @@ const SVG = {
   heartFill: '<svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
   heartHalf: '<svg class="ic ic--fill half" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
   heartOutline: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
+  globe: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>',
+  award: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg>',
+  bolt: '<svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="13 2 4 14 11 14 9 22 20 9 13 9 13 2"/></svg>',
+  pin: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.8"/></svg>',
+  lock: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  check: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><polyline points="4 12 10 18 20 6"/></svg>',
 };
 function iconForPoints(p) {
   if (p >= 4500) return SVG.target;
@@ -440,10 +447,7 @@ async function startGame() {
     await loadGoogleMaps();
   } catch (err) {
     showLoaderOnStart(false);
-    const status = $("sv-status");
-    status.textContent = err.message;
-    status.classList.remove("ok");
-    $("sv-panel").classList.remove("hidden");
+    toast(err.message);
     return;
   }
   showLoaderOnStart(false);
@@ -526,6 +530,8 @@ function finishRound() {
   state.totalScore += points;
   state.results.push({ name: state.currentName, km, points });
   $("score-total").textContent = state.totalScore.toLocaleString();
+  const guessSeconds = guess && state.timeLimit ? state.timeLimit - state.timeLeft : null;
+  recordRound(km, points, guessSeconds);
   showResult(state.currentName, state.truth, guess, km, points);
 }
 
@@ -629,6 +635,8 @@ function showSummary() {
   animateNumber($("summary-score"), state.totalScore, 900);
   $("summary-bar").style.width = "0%";
   setTimeout(() => { $("summary-bar").style.width = (pct * 100) + "%"; }, 80);
+
+  recordGame(state.totalScore, state.results.length);
 }
 
 function buildShareText() {
@@ -637,6 +645,84 @@ function buildShareText() {
     .map((r) => (r.points / MAX_POINTS_PER_ROUND >= 0.7 ? "🟩" : r.points / MAX_POINTS_PER_ROUND >= 0.4 ? "🟨" : "🟥"))
     .join("");
   return `🌍 GeoGuess — ${state.totalScore.toLocaleString()}/${max.toLocaleString()}\n${dots}\nCan you beat me?`;
+}
+
+/* ---------------------- Profile + achievements ---------- */
+const PROFILE_KEY = "geoguess.profile";
+const DEFAULT_PROFILE = {
+  name: "Explorer", games: 0, rounds: 0, totalScore: 0,
+  bestGame: 0, bestRound: 0, bestKm: null, fastestGuess: null, maxRounds: 0, unlocked: [],
+};
+let profile = loadProfile();
+
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    if (p && typeof p === "object") return Object.assign({}, DEFAULT_PROFILE, p);
+  } catch { /* ignore */ }
+  return Object.assign({}, DEFAULT_PROFILE);
+}
+function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch { /* ignore */ } }
+
+const ACHIEVEMENTS = [
+  { id: "first",    icon: "globe",   title: "First Steps",  desc: "Play your first game",        test: (p) => p.games >= 1 },
+  { id: "rounds25", icon: "compass", title: "World Tour",   desc: "Play 25 rounds total",        test: (p) => p.rounds >= 25 },
+  { id: "games10",  icon: "award",   title: "Globetrotter", desc: "Play 10 games",               test: (p) => p.games >= 10 },
+  { id: "sharp",    icon: "target",  title: "Sharpshooter", desc: "Score 4,500+ in a round",     test: (p) => p.bestRound >= 4500 },
+  { id: "bullseye", icon: "star",    title: "Bullseye",     desc: "Nail a 5,000-point round",    test: (p) => p.bestRound >= MAX_POINTS_PER_ROUND },
+  { id: "sniper",   icon: "pin",     title: "Sniper",       desc: "Guess within 50 km",          test: (p) => p.bestKm != null && p.bestKm <= 50 },
+  { id: "high",     icon: "award",   title: "High Roller",  desc: "Score 20,000+ in one game",   test: (p) => p.bestGame >= 20000 },
+  { id: "quick",    icon: "bolt",    title: "Quick Draw",   desc: "Guess in under 10 seconds",   test: (p) => p.fastestGuess != null && p.fastestGuess <= 10 },
+];
+
+function recordRound(km, points, guessSeconds) {
+  profile.rounds += 1;
+  if (points > profile.bestRound) profile.bestRound = points;
+  if (km != null && (profile.bestKm == null || km < profile.bestKm)) profile.bestKm = km;
+  if (guessSeconds != null && (profile.fastestGuess == null || guessSeconds < profile.fastestGuess)) profile.fastestGuess = guessSeconds;
+  saveProfile();
+}
+function recordGame(gameScore, roundsCount) {
+  profile.games += 1;
+  profile.totalScore += gameScore;
+  if (gameScore > profile.bestGame) profile.bestGame = gameScore;
+  if (roundsCount > profile.maxRounds) profile.maxRounds = roundsCount;
+  saveProfile();
+  checkAchievements();
+}
+function checkAchievements() {
+  const newly = [];
+  for (const a of ACHIEVEMENTS) {
+    if (!profile.unlocked.includes(a.id) && a.test(profile)) { profile.unlocked.push(a.id); newly.push(a); }
+  }
+  if (newly.length) { saveProfile(); newly.forEach((a) => toast("Achievement unlocked: " + a.title)); }
+}
+
+function avatarLetter() { return ((profile.name || "").trim()[0] || "E").toUpperCase(); }
+function renderProfile() {
+  $("profile-name").value = profile.name;
+  $("profile-avatar").textContent = avatarLetter();
+  $("stat-games").textContent = profile.games.toLocaleString();
+  $("stat-best").textContent = profile.bestGame.toLocaleString();
+  $("stat-rounds").textContent = profile.rounds.toLocaleString();
+  $("stat-total").textContent = profile.totalScore.toLocaleString();
+  const unlocked = ACHIEVEMENTS.filter((a) => profile.unlocked.includes(a.id)).length;
+  $("ach-progress").textContent = unlocked + " / " + ACHIEVEMENTS.length;
+
+  const list = $("ach-list");
+  list.innerHTML = "";
+  for (const a of ACHIEVEMENTS) {
+    const on = profile.unlocked.includes(a.id);
+    const row = document.createElement("div");
+    row.className = "ach " + (on ? "on" : "off");
+    row.innerHTML =
+      '<span class="ach-ic">' + (SVG[a.icon] || SVG.star) + "</span>" +
+      '<span class="ach-main"><span class="ach-title"></span><span class="ach-desc"></span></span>' +
+      '<span class="ach-check">' + (on ? SVG.check : SVG.lock) + "</span>";
+    row.querySelector(".ach-title").textContent = a.title;
+    row.querySelector(".ach-desc").textContent = a.desc;
+    list.appendChild(row);
+  }
 }
 
 /* ---------------------- Wire-up ------------------------- */
@@ -665,6 +751,15 @@ $("guess-btn").addEventListener("click", () => {
 });
 $("next-btn").addEventListener("click", nextRound);
 $("playagain-btn").addEventListener("click", () => { stopTimer(); stopAmbient(); clearInterval(onlineTimer); showScreen("start"); });
+
+// Profile screen
+$("profile-btn").addEventListener("click", () => { renderProfile(); showScreen("profile"); });
+$("profile-back").addEventListener("click", () => showScreen("start"));
+$("profile-name").addEventListener("input", () => {
+  profile.name = $("profile-name").value.slice(0, 20) || "Explorer";
+  $("profile-avatar").textContent = avatarLetter();
+  saveProfile();
+});
 $("share-btn").addEventListener("click", () => {
   const last = state.results[state.results.length - 1];
   const line = last ? `🌍 GeoGuess — ${last.name}: ${last.points.toLocaleString()} pts (${formatDistance(last.km)} off)` : "🌍 GeoGuess";
@@ -723,6 +818,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=22").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=23").catch(() => {});
   });
 }
