@@ -518,17 +518,25 @@ function showSummary() {
   $("summary-max").textContent = `out of ${max.toLocaleString()}`;
   $("summary-grade").textContent = gradeFor(pct);
 
-  // Per-round dots coloured by how well each round scored.
-  const dots = $("round-dots");
-  dots.innerHTML = "";
-  for (const r of state.results) {
-    const d = document.createElement("span");
-    d.className = "dot";
+  // Per-round breakdown as Bump-style list rows.
+  const list = $("round-dots");
+  list.innerHTML = "";
+  state.results.forEach((r, idx) => {
     const g = r.points / MAX_POINTS_PER_ROUND;
-    d.style.background = g >= 0.7 ? "#34d399" : g >= 0.4 ? "#f4c343" : "#e8746a";
-    d.title = `${r.name}: ${r.points.toLocaleString()}`;
-    dots.appendChild(d);
-  }
+    const heart = g >= 0.7 ? "❤️" : g >= 0.4 ? "🧡" : "🤍";
+    const sub = r.km == null ? "Out of time" : `${formatDistance(r.km)} away`;
+    const row = document.createElement("div");
+    row.className = "round-row";
+    row.innerHTML =
+      `<span class="round-row-rank">${idx + 1}</span>` +
+      `<span class="round-row-main"><div class="round-row-name"></div><div class="round-row-sub"></div></span>` +
+      `<span class="round-row-pts"></span>` +
+      `<span class="round-row-heart">${heart}</span>`;
+    row.querySelector(".round-row-name").textContent = r.name;
+    row.querySelector(".round-row-sub").textContent = sub;
+    row.querySelector(".round-row-pts").textContent = r.points.toLocaleString();
+    list.appendChild(row);
+  });
 
   showScreen("summary");
   animateNumber($("summary-score"), state.totalScore, 900);
@@ -625,6 +633,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=10").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=11").catch(() => {});
   });
 }
