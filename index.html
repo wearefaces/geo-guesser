@@ -20,11 +20,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
   <section id="start-screen" class="screen">
+    <button id="profile-btn" class="icon-btn icon-btn-float" type="button" aria-label="Profile">
+      <svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    </button>
     <div class="start-card">
       <h1 class="logo"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg><span class="ink">Geo</span><span class="accent">Guess</span></h1>
       <p class="tagline">Dropped somewhere on Earth.<br />Can you guess where?</p>
@@ -55,11 +58,40 @@
         <span><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.8"/></svg>Drop your pin</span>
         <span><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg>Score up to 5000</span>
       </div>
+    </div>
+  </section>
 
-      <!-- Google Maps API key (advanced / optional override) -->
+  <!-- ====================== PROFILE / SETTINGS ====================== -->
+  <section id="profile-screen" class="screen hidden">
+    <div class="profile-wrap">
+      <header class="profile-head">
+        <button id="profile-back" class="icon-btn" type="button" aria-label="Back">
+          <svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+        </button>
+        <h2>Profile</h2>
+        <span class="head-spacer"></span>
+      </header>
+
+      <div class="profile-card">
+        <div class="profile-id">
+          <div class="profile-avatar" id="profile-avatar">A</div>
+          <input id="profile-name" class="profile-name" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Your name" />
+        </div>
+        <div class="stats-grid">
+          <div class="stat"><b id="stat-games">0</b><span>Games</span></div>
+          <div class="stat"><b id="stat-best">0</b><span>Best game</span></div>
+          <div class="stat"><b id="stat-rounds">0</b><span>Rounds</span></div>
+          <div class="stat"><b id="stat-total">0</b><span>Total pts</span></div>
+        </div>
+      </div>
+
+      <h3 class="section-title">Achievements <span id="ach-progress" class="section-sub"></span></h3>
+      <div class="ach-list" id="ach-list"></div>
+
+      <h3 class="section-title">Settings</h3>
       <div class="sv-setup">
-        <button id="sv-toggle" class="link-btn" type="button">Advanced — Google Maps API key</button>
-        <div id="sv-panel" class="sv-panel hidden">
+        <button id="sv-toggle" class="link-btn" type="button">Google Maps API key</button>
+        <div id="sv-panel" class="sv-panel">
           <p class="sv-help">
             This game uses <strong>Google Street View</strong>. A key is built in;
             paste your own to use your quota. Restrict it to this domain in the
@@ -138,8 +170,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=22"></script>
-  <script src="locations.js?v=22"></script>
-  <script src="game.js?v=22"></script>
+  <script src="config.js?v=23"></script>
+  <script src="locations.js?v=23"></script>
+  <script src="game.js?v=23"></script>
 </body>
 </html>
