@@ -20,13 +20,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
   <section id="start-screen" class="screen">
     <div class="start-card">
-      <h1 class="logo">🌍 <span class="ink">Geo</span><span class="accent">Guess</span></h1>
+      <h1 class="logo"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg><span class="ink">Geo</span><span class="accent">Guess</span></h1>
       <p class="tagline">Dropped somewhere on Earth.<br />Can you guess where?</p>
 
       <div class="rounds-seg" id="rounds-seg" role="group" aria-label="Number of rounds">
@@ -47,18 +47,18 @@
         </div>
       </div>
 
-      <button id="start-btn" class="btn btn-primary btn-lg btn-block">▶ Play</button>
-      <button id="install-btn" class="btn btn-ghost btn-block install-btn hidden">📲 Install app</button>
+      <button id="start-btn" class="btn btn-primary btn-lg btn-block"><svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Play</button>
+      <button id="install-btn" class="btn btn-ghost btn-block install-btn hidden"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Install app</button>
 
       <div class="how-to">
-        <span>🚶 Walk the street view</span>
-        <span>📍 Drop your pin</span>
-        <span>🏆 Score up to 5000</span>
+        <span><svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Walk the street view</span>
+        <span><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.8"/></svg>Drop your pin</span>
+        <span><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg>Score up to 5000</span>
       </div>
 
       <!-- Google Maps API key (advanced / optional override) -->
       <div class="sv-setup">
-        <button id="sv-toggle" class="link-btn" type="button">⚙︎ Advanced: Google Maps API key</button>
+        <button id="sv-toggle" class="link-btn" type="button">Advanced — Google Maps API key</button>
         <div id="sv-panel" class="sv-panel hidden">
           <p class="sv-help">
             This game uses <strong>Google Street View</strong>. A key is built in;
@@ -80,10 +80,10 @@
   <section id="game-screen" class="screen hidden">
     <header class="hud">
       <div class="hud-pill" id="hud-round">Round <b><span id="round-current">1</span>/<span id="round-total">5</span></b></div>
-      <div class="brand-pill">🌍 GEOGUESS</div>
-      <div class="hud-pill" id="hud-score">🏆 <b><span id="score-total">0</span></b></div>
+      <div class="brand-pill"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>GEOGUESS</div>
+      <div class="hud-pill" id="hud-score"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg> <b><span id="score-total">0</span></b></div>
     </header>
-    <div class="hud-pill timer-pill" id="hud-timer">⏱ <b>—</b></div>
+    <div class="hud-pill timer-pill" id="hud-timer"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg> <b>—</b></div>
 
     <div class="pano" id="pano">
       <div class="sv" id="sv"></div>              <!-- Google StreetViewPanorama -->
@@ -98,9 +98,9 @@
 
     <!-- Floating guess panel (collapses to a thumbnail on mobile) -->
     <div class="guess-panel collapsed" id="guess-panel">
-      <button class="map-collapse" id="map-collapse" type="button" aria-label="Collapse map">✕</button>
+      <button class="map-collapse" id="map-collapse" type="button" aria-label="Collapse map"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <div class="guess-map" id="guess-map"></div>
-      <button class="map-open" id="map-open" type="button">🗺️ Tap to open map &amp; guess</button>
+      <button class="map-open" id="map-open" type="button"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><polygon points="2 7 2 22 9 18 15 22 22 18 22 3 15 7 9 3 2 7"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="7" x2="15" y2="22"/></svg> Tap to open map &amp; guess</button>
       <button id="guess-btn" class="btn btn-primary btn-block guess-btn" disabled>Drop a pin</button>
     </div>
   </section>
@@ -109,13 +109,13 @@
   <section id="result-screen" class="screen hidden">
     <div class="result-map" id="result-map"></div>
     <div class="result-card">
-      <div class="result-emoji" id="result-emoji">🎯</div>
+      <div class="result-emoji" id="result-emoji"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6"/></svg></div>
       <h2 id="result-distance">—</h2>
       <div class="score-bar"><div class="score-bar-fill" id="result-bar"></div></div>
       <p id="result-points" class="result-points"><span id="result-points-num">0</span> points</p>
       <div class="result-actions">
-        <button id="share-btn" class="btn btn-secondary">↗ Share</button>
-        <button id="next-btn" class="btn btn-primary">Next round →</button>
+        <button id="share-btn" class="btn btn-secondary"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"/><line x1="15.7" y1="6.3" x2="8.3" y2="10.7"/></svg>Share</button>
+        <button id="next-btn" class="btn btn-primary">Next round<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
       </div>
     </div>
   </section>
@@ -123,7 +123,7 @@
   <!-- ====================== FINAL SUMMARY ====================== -->
   <section id="summary-screen" class="screen hidden">
     <div class="summary-card">
-      <h1>🏁 Game over</h1>
+      <h1><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Game over</h1>
       <p class="summary-total">You scored</p>
       <div class="summary-score"><span id="summary-score">0</span></div>
       <p class="summary-max" id="summary-max">out of 0</p>
@@ -131,16 +131,16 @@
       <p class="summary-grade" id="summary-grade"></p>
       <div class="round-list" id="round-dots"></div>
       <div class="summary-actions">
-        <button id="summary-share-btn" class="btn btn-secondary btn-block">↗ Share result</button>
-        <button id="playagain-btn" class="btn btn-primary btn-block">🔄 Play again</button>
+        <button id="summary-share-btn" class="btn btn-secondary btn-block"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"/><line x1="15.7" y1="6.3" x2="8.3" y2="10.7"/></svg>Share result</button>
+        <button id="playagain-btn" class="btn btn-primary btn-block"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><polyline points="21 5 21 10 16 10"/><polyline points="3 19 3 14 8 14"/><path d="M4.5 10a8 8 0 0 1 13-3l3.5 3M3 14l3.5 3a8 8 0 0 0 13-3"/></svg>Play again</button>
       </div>
     </div>
   </section>
 
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=15"></script>
-  <script src="locations.js?v=15"></script>
-  <script src="game.js?v=15"></script>
+  <script src="config.js?v=16"></script>
+  <script src="locations.js?v=16"></script>
+  <script src="game.js?v=16"></script>
 </body>
 </html>
