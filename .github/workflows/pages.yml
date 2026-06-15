@@ -2,11 +2,12 @@ name: Deploy to GitHub Pages
 
 # The game is fully static, so we publish the repo root straight to Pages.
 # This gives a public https URL that works on any device, including mobile.
+# Only `main` deploys (Pages' environment is locked to the default branch);
+# triggering on other branches just made runs collide and cancel each other.
 on:
   push:
     branches:
       - main
-      - claude/geo-guesser-clone-8tgkyr
   workflow_dispatch:
 
 permissions:
@@ -14,10 +15,10 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment; newer pushes cancel in-flight ones.
+# Never cancel an in-flight deploy — let it finish so the site always updates.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
