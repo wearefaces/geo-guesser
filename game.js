@@ -624,6 +624,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=14").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=15").catch(() => {});
   });
 }

@@ -15,9 +15,8 @@
   --radius: 24px;
   --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
           Roboto, system-ui, sans-serif;
-  /* Druk Condensed-style display face for titles + buttons (Anton = free
-     stand-in; swap to a licensed Druk @font-face to use the real thing). */
-  --font-display: "Druk Condensed", "Anton", "Plus Jakarta Sans", sans-serif;
+  /* Anton — bold condensed display face for titles + buttons. */
+  --font-display: "Anton", "Plus Jakarta Sans", sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
