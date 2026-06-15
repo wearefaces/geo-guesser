@@ -56,7 +56,13 @@ function showScreen(name) {
 
 /* ---------------------- Mapillary token ----------------- */
 function getToken() {
-  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+  // A player's own token (saved in their browser) wins; otherwise fall back to
+  // the baked-in public token from config.js so Street View works out of the box.
+  try {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (stored) return stored;
+  } catch { /* ignore */ }
+  return (window.GEOGUESS_CONFIG && window.GEOGUESS_CONFIG.mapillaryToken) || "";
 }
 function setToken(t) {
   try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
@@ -68,7 +74,6 @@ function refreshTokenStatus() {
     ? "✓ Street View enabled — you'll walk around real imagery."
     : "No token set — you'll guess from photos.";
   status.classList.toggle("ok", has);
-  if (has && !$("sv-token").value) $("sv-token").value = getToken();
 }
 
 /* ---------------------- MapLibre maps ------------------- */

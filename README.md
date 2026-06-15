@@ -19,15 +19,20 @@ round).
 ## Street View (Mapillary)
 
 Street-level "walk around" imagery comes from [Mapillary](https://www.mapillary.com/),
-which is free but needs an access token:
+which is free but needs an access token. **A public, read-only token is baked
+into `config.js`** so Street View works out of the box on the deployed site —
+no setup required. Treat it as throwaway; regenerate it from the
+[Mapillary dashboard](https://www.mapillary.com/dashboard/developers) if it ever
+gets abused.
 
-1. Sign in at <https://www.mapillary.com/dashboard/developers> and create a token.
-2. On the GeoGuess start screen, expand **Street View** and paste it in, then **Save**.
+To use your **own** token instead (e.g. your own quota), on the start screen
+expand **Street View**, paste it in, and **Save**. A personal token is stored
+only in your browser (`localStorage`), never committed, and takes precedence
+over the built-in one.
 
-The token is stored only in your browser (`localStorage`) — it is **never**
-committed to this repo or sent anywhere except Mapillary. Coverage is
-crowdsourced, so a round with no nearby imagery automatically falls back to a
-photo. With no token at all, the whole game runs in photo mode.
+Coverage is crowdsourced, so a round with no nearby imagery automatically falls
+back to a photo. Walk around with: **drag** to look, **tap the on-street arrows**
+to move (arrow keys on desktop).
 
 ## Localized map
 
