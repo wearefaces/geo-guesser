@@ -583,3 +583,40 @@ $("sv-toggle").addEventListener("click", () => {
 $("sv-save").addEventListener("click", () => { setKey($("sv-token").value.trim()); refreshKeyStatus(); });
 $("sv-clear").addEventListener("click", () => { setKey(""); $("sv-token").value = ""; refreshKeyStatus(); });
 refreshKeyStatus();
+
+/* ---------------------- PWA: install + service worker -------- */
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+let deferredPrompt = null;
+
+const installBtn = $("install-btn");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone) installBtn.classList.remove("hidden");
+});
+window.addEventListener("appinstalled", () => {
+  installBtn.classList.add("hidden");
+  toast("Installed — find GeoGuess on your home screen 🎉");
+});
+// iOS gives no install event; show the button with manual instructions instead.
+if (isiOS && !isStandalone) installBtn.classList.remove("hidden");
+
+installBtn.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    try { await deferredPrompt.userChoice; } catch { /* ignore */ }
+    deferredPrompt = null;
+    installBtn.classList.add("hidden");
+  } else if (isiOS) {
+    toast("Tap the Share button, then “Add to Home Screen”");
+  } else {
+    toast("Use your browser menu → “Install app”");
+  }
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js?v=7").catch(() => {});
+  });
+}

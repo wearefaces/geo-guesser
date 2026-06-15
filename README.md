@@ -27,6 +27,8 @@ points = 5000 · e^(−distance_km / 1500)   (5000 within ~25 km)
 
 ## Features
 
+- **Installable PWA** — "Add to Home Screen" for a full-screen, app-like
+  experience with its own icon; offline app shell via a service worker.
 - **Google Street View** with full chevron-arrow walking and a Google guess map.
 - **Road-only locations** (`StreetViewSource.GOOGLE`) — you always land on a
   street, never an isolated photosphere in a desert or forest.
