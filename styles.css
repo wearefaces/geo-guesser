@@ -65,6 +65,7 @@ html, body {
 .btn-lg { padding: 18px 30px; font-size: 1.25rem; }
 .btn-block { display: flex; width: 100%; }
 .install-btn { margin-top: 10px; }
+.guess-btn.danger { background: linear-gradient(180deg, #ff7a85, #ff5d6c); box-shadow: 0 12px 26px rgba(255,93,108,0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
 
 /* ---------------------- Flat icons ---------------------- */
 .ic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.2em; flex: 0 0 auto; }
