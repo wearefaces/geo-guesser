@@ -154,12 +154,25 @@ function formatDistance(km) {
   if (km < 100) return `${km.toFixed(1)} km`;
   return `${Math.round(km).toLocaleString()} km`;
 }
-function emojiForPoints(p) {
-  if (p >= 4500) return "🎯";
-  if (p >= 3500) return "🔥";
-  if (p >= 2000) return "👍";
-  if (p >= 800) return "🧭";
-  return "😅";
+// Flat monochrome icons (inline SVG, currentColor).
+const SVG = {
+  walk: '<svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>',
+  target: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6"/></svg>',
+  star: '<svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3 14.7 8.6 21 9.3 16.5 13.6 17.6 19.9 12 16.9 6.4 19.9 7.5 13.6 3 9.3 9.3 8.6 12 3"/></svg>',
+  thumb: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z"/><path d="M7 11l4-8a2 2 0 0 1 3 1.8V9h4.6a2 2 0 0 1 2 2.4l-1.3 7A2 2 0 0 1 17.3 20H7"/></svg>',
+  compass: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5 15.5 8.5"/></svg>',
+  xcircle: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  clock: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>',
+  heartFill: '<svg class="ic ic--fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
+  heartHalf: '<svg class="ic ic--fill half" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
+  heartOutline: '<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.5-9A5 5 0 0 1 12 6a5 5 0 0 1 9.5 6c-2.5 4.4-9.5 9-9.5 9z"/></svg>',
+};
+function iconForPoints(p) {
+  if (p >= 4500) return SVG.target;
+  if (p >= 3500) return SVG.star;
+  if (p >= 2000) return SVG.thumb;
+  if (p >= 800) return SVG.compass;
+  return SVG.xcircle;
 }
 
 /* ---------------------- UI feedback --------------------- */
@@ -187,7 +200,7 @@ async function shareText(text) {
     try { await navigator.share({ title: "GeoGuess", text, url: GAME_URL }); return; }
     catch { /* user cancelled or unsupported — fall through to copy */ }
   }
-  try { await navigator.clipboard.writeText(text + "\n" + GAME_URL); toast("Copied to clipboard 📋"); }
+  try { await navigator.clipboard.writeText(text + "\n" + GAME_URL); toast("Copied to clipboard"); }
   catch { toast("Couldn't share"); }
 }
 
@@ -213,7 +226,7 @@ function startTimer() {
   state.timerId = setInterval(() => {
     state.timeLeft -= 1;
     renderTimer();
-    if (state.timeLeft <= 0) { stopTimer(); toast("⏰ Time's up!"); finishRound(); }
+    if (state.timeLeft <= 0) { stopTimer(); toast("Time's up!"); finishRound(); }
   }, 1000);
 }
 
@@ -347,7 +360,7 @@ async function startGame() {
   } catch (err) {
     showLoaderOnStart(false);
     const status = $("sv-status");
-    status.textContent = "⚠️ " + err.message;
+    status.textContent = err.message;
     status.classList.remove("ok");
     $("sv-panel").classList.remove("hidden");
     return;
@@ -405,7 +418,7 @@ async function loadRound() {
   $("sv").style.display = "block";
   $("pano-img").style.display = "none";
   hideLoader();
-  setPanoHint("🚶 <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
+  setPanoHint(SVG.walk + " <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
   startTimer();
 
   // Resolve a human-readable name in the background for the result screen.
@@ -436,7 +449,7 @@ function finishRound() {
 /* ---------------------- Result -------------------------- */
 function showResult(name, truth, guess, km, points) {
   showScreen("result");
-  $("result-emoji").textContent = guess ? emojiForPoints(points) : "⏰";
+  $("result-emoji").innerHTML = guess ? iconForPoints(points) : SVG.clock;
   $("result-distance").textContent = guess
     ? `${name} — ${formatDistance(km)} away`
     : `${name} — out of time!`;
@@ -453,7 +466,7 @@ function showResult(name, truth, guess, km, points) {
   if (resultLine) { resultLine.setMap(null); resultLine = null; }
 
   const t = { lat: truth.lat, lng: truth.lng };
-  resultMarkers.push(new google.maps.Marker({ position: t, map: resultMap, label: "📍", title: name }));
+  resultMarkers.push(new google.maps.Marker({ position: t, map: resultMap, title: name }));
 
   if (guess) {
     const g = { lat: guess.lat, lng: guess.lng };
@@ -497,11 +510,11 @@ function nextRound() {
 
 /* ---------------------- Summary ------------------------- */
 function gradeFor(pct) {
-  if (pct >= 0.9) return "🌟 World traveler!";
-  if (pct >= 0.7) return "✈️ Seasoned explorer.";
-  if (pct >= 0.5) return "🧭 Getting your bearings.";
-  if (pct >= 0.3) return "🗺️ Room to roam.";
-  return "🤷 Lost, but having fun!";
+  if (pct >= 0.9) return "World traveler!";
+  if (pct >= 0.7) return "Seasoned explorer.";
+  if (pct >= 0.5) return "Getting your bearings.";
+  if (pct >= 0.3) return "Room to roam.";
+  return "Lost, but having fun!";
 }
 function showSummary() {
   const max = state.results.length * MAX_POINTS_PER_ROUND;
@@ -514,7 +527,7 @@ function showSummary() {
   list.innerHTML = "";
   state.results.forEach((r, idx) => {
     const g = r.points / MAX_POINTS_PER_ROUND;
-    const heart = g >= 0.7 ? "❤️" : g >= 0.4 ? "🧡" : "🤍";
+    const heart = g >= 0.7 ? SVG.heartFill : g >= 0.4 ? SVG.heartHalf : SVG.heartOutline;
     const sub = r.km == null ? "Out of time" : `${formatDistance(r.km)} away`;
     const row = document.createElement("div");
     row.className = "round-row";
@@ -577,7 +590,7 @@ $("sv-toggle").addEventListener("click", () => {
   const panel = $("sv-panel");
   panel.classList.toggle("hidden");
   $("sv-toggle").textContent =
-    (panel.classList.contains("hidden") ? "⚙︎ Advanced:" : "▾") + " Google Maps API key";
+    (panel.classList.contains("hidden") ? "Advanced — " : "Hide — ") + "Google Maps API key";
 });
 $("sv-save").addEventListener("click", () => { setKey($("sv-token").value.trim()); refreshKeyStatus(); });
 $("sv-clear").addEventListener("click", () => { setKey(""); $("sv-token").value = ""; refreshKeyStatus(); });
@@ -596,7 +609,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
 });
 window.addEventListener("appinstalled", () => {
   installBtn.classList.add("hidden");
-  toast("Installed — find GeoGuess on your home screen 🎉");
+  toast("Installed — find GeoGuess on your home screen");
 });
 // iOS gives no install event; show the button with manual instructions instead.
 if (isiOS && !isStandalone) installBtn.classList.remove("hidden");
@@ -624,6 +637,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=15").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=16").catch(() => {});
   });
 }

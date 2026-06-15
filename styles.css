@@ -66,6 +66,18 @@ html, body {
 .btn-block { display: flex; width: 100%; }
 .install-btn { margin-top: 10px; }
 
+/* ---------------------- Flat icons ---------------------- */
+.ic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.2em; flex: 0 0 auto; }
+.ic--stroke { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic--fill { fill: currentColor; }
+.btn .ic { width: 1.05em; height: 1.05em; vertical-align: -0.12em; }
+.logo .ic { width: 0.95em; height: 0.95em; color: var(--accent); vertical-align: -0.08em; margin-right: 6px; }
+.brand-pill .ic, #hud-score .ic, .map-open .ic { width: 1.05em; height: 1.05em; }
+.result-emoji .ic { width: 2.4rem; height: 2.4rem; color: var(--ink); }
+.how-to span { display: inline-flex; align-items: center; gap: 5px; }
+.round-row-heart .ic { width: 18px; height: 18px; color: var(--ink); vertical-align: middle; }
+.round-row-heart .ic.half { opacity: 0.4; }
+
 /* ---------------------- Start / summary ---------------------- */
 #start-screen, #summary-screen {
   display: flex; align-items: center; justify-content: center;
