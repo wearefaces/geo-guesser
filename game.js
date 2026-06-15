@@ -26,6 +26,7 @@ const state = {
   totalScore: 0,
   guessLatLng: null, // {lat,lng}
   truth: null,       // {lat,lng}
+  currentName: "",   // reverse-geocoded name of the current round
   rounds: 5,         // chosen via the segmented control
   results: [],       // [{ name, km, points }] for share + summary
   timeLimit: 60,     // seconds per round (0 = no timer)
@@ -224,7 +225,7 @@ let panorama = null, svService = null;
 function findPano(lat, lng) {
   return new Promise((resolve) => {
     if (!svService) svService = new google.maps.StreetViewService();
-    const radii = [1000, 5000, 25000, 100000];
+    const radii = [3000, 12000, 45000];
     let i = 0;
     const attempt = () => {
       svService.getPanorama(
@@ -269,23 +270,45 @@ function ensurePanorama(panoId) {
   });
 }
 
-/* ---------------------- Photo fallback ------------------ */
-// Used only when a round's seed has no nearby Street View at all.
-async function fetchImageForLocation(loc) {
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(loc.title)}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Wikipedia returned ${res.status}`);
-  const data = await res.json();
-  const src = (data.originalimage && data.originalimage.source) ||
-              (data.thumbnail && data.thumbnail.source);
-  if (!src) throw new Error("No image available");
-  return src;
+/* ---------------------- Worldwide location picking ------ */
+// Pick a real road panorama anywhere: take an anchor, jitter it so we land on a
+// random nearby street, and snap to the nearest Google coverage. Try several
+// anchors/jitters so a round is always found.
+async function findRoundPano() {
+  const deck = state.deck;
+  for (let t = 0; t < 10; t++) {
+    const anchor = deck[(state.roundIndex + t) % deck.length];
+    const jLat = anchor.lat + (Math.random() - 0.5) * 0.8; // ~±44 km
+    const jLng = anchor.lng + (Math.random() - 0.5) * 0.8;
+    const hit = await findPano(jLat, jLng);
+    if (hit) return hit;
+  }
+  // Last resort: the anchors themselves (guaranteed coverage).
+  for (const a of deck) {
+    const hit = await findPano(a.lat, a.lng);
+    if (hit) return hit;
+  }
+  return null;
 }
-function loadImg(imgEl, src) {
-  return new Promise((resolve, reject) => {
-    imgEl.onload = () => resolve();
-    imgEl.onerror = () => reject(new Error("Image failed to load"));
-    imgEl.src = src;
+
+// Resolve a friendly "City, Country" name for a coordinate (no extra API key).
+let geocoder = null;
+function reverseGeocode(lat, lng) {
+  return new Promise((resolve) => {
+    if (!geocoder) geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status !== "OK" || !results || !results.length) return resolve(null);
+      const pick = (type) => {
+        for (const r of results)
+          for (const c of r.address_components)
+            if (c.types.includes(type)) return c.long_name;
+        return null;
+      };
+      const city = pick("locality") || pick("postal_town") ||
+                   pick("administrative_area_level_2") || pick("administrative_area_level_1");
+      const country = pick("country");
+      resolve(city && country ? `${city}, ${country}` : (country || null));
+    });
   });
 }
 
@@ -368,56 +391,25 @@ function resetGuessUI() {
   setMapExpanded(false);
 }
 
-function skipRound(reason) {
-  console.warn("Skipping round:", reason);
-  state.deck.splice(state.roundIndex, 1);
-  if (state.deck.length <= state.roundIndex) {
-    const used = new Set(state.deck.map((l) => l.title));
-    const extra = LOCATIONS.find((l) => !used.has(l.title));
-    if (extra) state.deck.push(extra);
-  }
-  $("round-total").textContent = state.deck.length;
-  if (state.deck.length === 0) { showLoader("Couldn't load any locations."); return; }
-  setTimeout(loadRound, 400);
-}
-
 async function loadRound() {
-  const loc = state.deck[state.roundIndex];
   resetGuessUI();
-  $("pano-img").classList.remove("ready");
   $("pano-credit").textContent = "";
-  showLoader("Finding a street…");
+  state.currentName = "this location";
+  showLoader("Finding a street somewhere on Earth…");
 
-  const hit = await findPano(loc.lat, loc.lng);
-  if (hit) {
-    state.truth = { lat: hit.lat, lng: hit.lng };
-    ensurePanorama(hit.pano);
-    $("sv").style.display = "block";
-    $("pano-img").style.display = "none";
-    hideLoader();
-    setPanoHint("🚶 <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
-    startTimer();
-  } else {
-    await loadPhotoRound(loc);
-  }
-}
+  const hit = await findRoundPano();
+  if (!hit) { showLoader("Couldn't find a location — check your connection."); return; }
 
-async function loadPhotoRound(loc) {
-  const img = $("pano-img");
-  $("sv").style.display = "none";
-  img.style.display = "block";
-  state.truth = { lat: loc.lat, lng: loc.lng };
-  try {
-    const src = await fetchImageForLocation(loc);
-    await loadImg(img, src);
-    img.classList.add("ready");
-    hideLoader();
-    $("pano-credit").textContent = "Photo: Wikimedia Commons";
-    setPanoHint("📷 No Street View here — showing a photo for this round", false);
-    startTimer();
-  } catch (err) {
-    skipRound(`${loc.name}: ${err.message}`);
-  }
+  state.truth = { lat: hit.lat, lng: hit.lng };
+  ensurePanorama(hit.pano);
+  $("sv").style.display = "block";
+  $("pano-img").style.display = "none";
+  hideLoader();
+  setPanoHint("🚶 <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
+  startTimer();
+
+  // Resolve a human-readable name in the background for the result screen.
+  reverseGeocode(hit.lat, hit.lng).then((name) => { if (name) state.currentName = name; });
 }
 
 // Manual "Guess" button — only valid once a pin is placed.
@@ -429,7 +421,6 @@ function submitGuess() {
 // End the round, whether by guessing or the timer running out (no pin = 0).
 function finishRound() {
   stopTimer();
-  const loc = state.deck[state.roundIndex];
   const guess = state.guessLatLng;
   let km = null, points = 0;
   if (guess && state.truth) {
@@ -437,18 +428,18 @@ function finishRound() {
     points = scoreForDistance(km);
   }
   state.totalScore += points;
-  state.results.push({ name: loc.name, km, points });
+  state.results.push({ name: state.currentName, km, points });
   $("score-total").textContent = state.totalScore.toLocaleString();
-  showResult(loc, state.truth, guess, km, points);
+  showResult(state.currentName, state.truth, guess, km, points);
 }
 
 /* ---------------------- Result -------------------------- */
-function showResult(loc, truth, guess, km, points) {
+function showResult(name, truth, guess, km, points) {
   showScreen("result");
   $("result-emoji").textContent = guess ? emojiForPoints(points) : "⏰";
   $("result-distance").textContent = guess
-    ? `${loc.name} — ${formatDistance(km)} away`
-    : `${loc.name} — out of time!`;
+    ? `${name} — ${formatDistance(km)} away`
+    : `${name} — out of time!`;
   animateNumber($("result-points-num"), points);
   $("result-bar").style.width = "0%";
   setTimeout(() => { $("result-bar").style.width = (points / MAX_POINTS_PER_ROUND * 100) + "%"; }, 60);
@@ -462,7 +453,7 @@ function showResult(loc, truth, guess, km, points) {
   if (resultLine) { resultLine.setMap(null); resultLine = null; }
 
   const t = { lat: truth.lat, lng: truth.lng };
-  resultMarkers.push(new google.maps.Marker({ position: t, map: resultMap, label: "📍", title: loc.name }));
+  resultMarkers.push(new google.maps.Marker({ position: t, map: resultMap, label: "📍", title: name }));
 
   if (guess) {
     const g = { lat: guess.lat, lng: guess.lng };
@@ -633,6 +624,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=12").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=13").catch(() => {});
   });
 }

@@ -144,7 +144,21 @@ html, body {
 .hud-pill b { color: var(--accent); }
 #hud-score { background: var(--accent-grad); color: #fff; box-shadow: 0 8px 18px rgba(47,107,255,0.4); }
 #hud-score b { color: #fff; }
-#hud-timer { font-variant-numeric: tabular-nums; }
+
+/* Centered navy brand pill (Bump-style top bar) */
+.brand-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #14123c; color: #fff; font-weight: 800; letter-spacing: 0.8px;
+  font-size: 0.82rem; padding: 9px 16px; border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(20,18,60,0.4);
+}
+
+/* Timer as its own centered pill just under the top bar */
+.timer-pill {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top) + 58px); z-index: 1000;
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
 #hud-timer.danger { background: var(--bad); color: #fff; animation: pulse 1s ease-in-out infinite; }
 #hud-timer.danger b { color: #fff; }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
@@ -160,7 +174,7 @@ html, body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .pano-hint {
-  position: absolute; top: 62px; left: 50%; transform: translateX(-50%) translateY(-8px);
+  position: absolute; top: calc(env(safe-area-inset-top) + 108px); left: 50%; transform: translateX(-50%) translateY(-8px);
   z-index: 900; max-width: min(92vw, 480px); padding: 11px 18px; border-radius: 999px;
   background: rgba(255,255,255,0.96); color: var(--ink); font-size: 0.88rem; font-weight: 700; text-align: center;
   box-shadow: var(--shadow); opacity: 0; pointer-events: none;
