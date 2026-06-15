@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
 </head>
 <body>
   <!-- ====================== START SCREEN ====================== -->
@@ -84,6 +84,7 @@
       <div class="hud-pill" id="hud-score"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><polyline points="8.5 14 7.5 21 12 18.5 16.5 21 15.5 14"/></svg> <b><span id="score-total">0</span></b></div>
     </header>
     <div class="hud-pill timer-pill" id="hud-timer"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg> <b>—</b></div>
+    <div class="live-pill" id="live-pill"><span class="live-dot"></span><b id="online-count">0</b>&nbsp;online</div>
 
     <div class="pano" id="pano">
       <div class="sv" id="sv"></div>              <!-- Google StreetViewPanorama -->
@@ -115,7 +116,7 @@
       <p id="result-points" class="result-points"><span id="result-points-num">0</span> points</p>
       <div class="result-actions">
         <button id="share-btn" class="btn btn-secondary"><svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"/><line x1="15.7" y1="6.3" x2="8.3" y2="10.7"/></svg>Share</button>
-        <button id="next-btn" class="btn btn-primary">Next round<svg class="ic ic--stroke" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
+        <button id="next-btn" class="btn btn-primary">Next round</button>
       </div>
     </div>
   </section>
@@ -139,8 +140,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=16"></script>
-  <script src="locations.js?v=16"></script>
-  <script src="game.js?v=16"></script>
+  <script src="config.js?v=17"></script>
+  <script src="locations.js?v=17"></script>
+  <script src="game.js?v=17"></script>
 </body>
 </html>

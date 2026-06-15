@@ -230,6 +230,62 @@ function startTimer() {
   }, 1000);
 }
 
+/* ---------------------- Ambient players ----------------- */
+// Simulated "online" players dropping pins on the guess map for a lively,
+// social feel. Purely cosmetic — never affects scoring or the player's pin.
+const PLAYER_COLORS = ["#2f6bff", "#18c98a", "#f4b740", "#ff5d6c", "#a855f7", "#06b6d4", "#fb7185"];
+let ambientTimer = null, onlineTimer = null, ambientMarkers = [];
+let onlineCount = 0;
+
+function renderOnline() {
+  const el = $("online-count");
+  if (el) el.textContent = onlineCount.toLocaleString();
+}
+function startOnline() {
+  if (!onlineCount) onlineCount = 900 + Math.floor(Math.random() * 2600);
+  renderOnline();
+  clearInterval(onlineTimer);
+  onlineTimer = setInterval(() => {
+    onlineCount = Math.max(750, onlineCount + Math.floor(Math.random() * 21) - 9);
+    renderOnline();
+  }, 2500);
+}
+function dropFakePin() {
+  if (!guessMap || !window.google) return;
+  let lat, lng;
+  const b = guessMap.getBounds && guessMap.getBounds();
+  if (b) {
+    const ne = b.getNorthEast(), sw = b.getSouthWest();
+    lat = sw.lat() + Math.random() * (ne.lat() - sw.lat());
+    lng = sw.lng() + Math.random() * (ne.lng() - sw.lng());
+  } else {
+    lat = Math.random() * 140 - 70;
+    lng = Math.random() * 360 - 180;
+  }
+  const color = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+  const m = new google.maps.Marker({
+    position: { lat, lng }, map: guessMap, clickable: false, zIndex: 1,
+    animation: google.maps.Animation.DROP,
+    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 6, fillColor: color, fillOpacity: 0.9, strokeColor: "#fff", strokeWeight: 2 },
+  });
+  ambientMarkers.push(m);
+  if (ambientMarkers.length > 14) ambientMarkers.shift().setMap(null);
+  setTimeout(() => { m.setMap(null); ambientMarkers = ambientMarkers.filter((x) => x !== m); }, 3500);
+}
+function startAmbient() {
+  stopAmbient();
+  const tick = () => {
+    dropFakePin();
+    ambientTimer = setTimeout(tick, 900 + Math.random() * 1500);
+  };
+  ambientTimer = setTimeout(tick, 600);
+}
+function stopAmbient() {
+  clearTimeout(ambientTimer); ambientTimer = null;
+  ambientMarkers.forEach((m) => m.setMap(null));
+  ambientMarkers = [];
+}
+
 /* ---------------------- Street View --------------------- */
 let panorama = null, svService = null;
 
@@ -375,6 +431,7 @@ async function startGame() {
   $("score-total").textContent = "0";
   showScreen("game");
   initGuessMap();
+  startOnline();
   setTimeout(() => google.maps.event.trigger(guessMap, "resize"), 80);
   loadRound();
 }
@@ -420,6 +477,7 @@ async function loadRound() {
   hideLoader();
   setPanoHint(SVG.walk + " <b>Drag</b> to look around · click the <b>arrows</b> to walk", false);
   startTimer();
+  startAmbient();
 
   // Resolve a human-readable name in the background for the result screen.
   reverseGeocode(hit.lat, hit.lng).then((name) => { if (name) state.currentName = name; });
@@ -434,6 +492,7 @@ function submitGuess() {
 // End the round, whether by guessing or the timer running out (no pin = 0).
 function finishRound() {
   stopTimer();
+  stopAmbient();
   const guess = state.guessLatLng;
   let km = null, points = 0;
   if (guess && state.truth) {
@@ -457,7 +516,7 @@ function showResult(name, truth, guess, km, points) {
   $("result-bar").style.width = "0%";
   setTimeout(() => { $("result-bar").style.width = (points / MAX_POINTS_PER_ROUND * 100) + "%"; }, 60);
   $("next-btn").textContent =
-    state.roundIndex + 1 >= state.deck.length ? "See results →" : "Next round →";
+    state.roundIndex + 1 >= state.deck.length ? "See results" : "Next round";
 
   if (!resultMap) resultMap = makeMap($("result-map"), true);
 
@@ -578,7 +637,7 @@ $("map-collapse").addEventListener("click", () => setMapExpanded(false));
 $("start-btn").addEventListener("click", startGame);
 $("guess-btn").addEventListener("click", submitGuess);
 $("next-btn").addEventListener("click", nextRound);
-$("playagain-btn").addEventListener("click", () => { stopTimer(); showScreen("start"); });
+$("playagain-btn").addEventListener("click", () => { stopTimer(); stopAmbient(); clearInterval(onlineTimer); showScreen("start"); });
 $("share-btn").addEventListener("click", () => {
   const last = state.results[state.results.length - 1];
   const line = last ? `🌍 GeoGuess — ${last.name}: ${last.points.toLocaleString()} pts (${formatDistance(last.km)} off)` : "🌍 GeoGuess";
@@ -637,6 +696,6 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=16").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=17").catch(() => {});
   });
 }
