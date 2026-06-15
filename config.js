@@ -10,5 +10,5 @@
  * one is stored only in their browser).
  */
 window.GEOGUESS_CONFIG = {
-  googleMapsKey: "",
+  googleMapsKey: "AIzaSyAxbZNWm51wKF_Gc7XYElzojCGaSMD0GHo",
 };
